@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, jsonify
 import os
 
 app = Flask(__name__)
@@ -45,11 +45,11 @@ def upload(track_number):
     Handle file upload for a specific track.
     """
     if "file" not in request.files:
-        return "No file part", 400
+        return jsonify({"error": "No file part"}), 400
 
     file = request.files["file"]
     if file.filename == "":
-        return "No selected file", 400
+        return jsonify({"error": "No selected file"}), 400
 
     if file and file.filename.lower().endswith((".mp3", ".wav")):
         # Create the filename with the track number prefix
@@ -66,9 +66,9 @@ def upload(track_number):
 
         # Save the new file
         file.save(new_file_path)
-        return redirect(url_for("index"))
+        return jsonify({"success": "File uploaded successfully!"}), 200
 
-    return "Invalid file type. Only MP3 and WAV are allowed.", 400
+    return jsonify({"error": "Invalid file type. Only MP3 and WAV are allowed."}), 400
 
 
 if __name__ == "__main__":
