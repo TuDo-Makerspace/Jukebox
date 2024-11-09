@@ -133,7 +133,7 @@ GPIO.setup(GPIO_BOT_LAMPS, GPIO.OUT)
 
 def clear_terminal():
     """Clear the terminal screen."""
-    os.system("clear" if os.name == "posix" else "cls")
+    os.system("clear")
 
 
 def song_path(number):
