@@ -2,4 +2,6 @@ ffmpeg
 bpm-tools
 libsox-fmt-mp3
 
+flask
+
 Additonally: Modify /boot/firmware/config.txt to disable lamps on boot

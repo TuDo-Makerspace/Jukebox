@@ -118,15 +118,6 @@ ALL_LIGHT_PATTERNS = [
 ]
 
 ################################################################
-# GPIO Initialization
-################################################################
-
-GPIO.setmode(GPIO.BCM)
-GPIO.setup(GPIO_TOP_LAMPS, GPIO.OUT)
-GPIO.setup(GPIO_LR_LAMPS, GPIO.OUT)
-GPIO.setup(GPIO_BOT_LAMPS, GPIO.OUT)
-
-################################################################
 # Functions
 ################################################################
 
@@ -134,6 +125,22 @@ GPIO.setup(GPIO_BOT_LAMPS, GPIO.OUT)
 def clear_terminal():
     """Clear the terminal screen."""
     os.system("clear")
+
+
+def init_gpios():
+    """
+    Initialize the GPIO pins for the keypad and lights.
+    """
+    GPIO.setmode(GPIO.BCM)
+
+    # Set the GPIO pins for the keypad as inputs with pull-down resistors
+    for pin in KEYPAD_GPIO_PINS:
+        GPIO.setup(pin, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+
+    # Set the GPIO pins for the lights as outputs
+    GPIO.setup(GPIO_TOP_LAMPS, GPIO.OUT)
+    GPIO.setup(GPIO_LR_LAMPS, GPIO.OUT)
+    GPIO.setup(GPIO_BOT_LAMPS, GPIO.OUT)
 
 
 def song_path(number):
@@ -191,7 +198,7 @@ def bpm_tag(file_path):
     return bpm
 
 
-def play(song_path):
+def play_song(song_path):
     """
     Play a song using ffplay.
 
@@ -271,39 +278,45 @@ def test_lights(args):
     GPIO.output(GPIO_BOT_LAMPS, LAMP_OFF)
 
 
+def play(number):
+    spath = song_path(number)
+
+    if not spath:
+        print(f"No song found for number {number} in {JUKEBOX_SONGS_PATH}")
+        return False
+
+    GPIO.output(GPIO_TOP_LAMPS, LAMP_ON)
+    GPIO.output(GPIO_LR_LAMPS, LAMP_ON)
+    GPIO.output(GPIO_BOT_LAMPS, LAMP_ON)
+
+    play_load_sample_thread = threading.Thread(
+        target=play_song, args=(JUKEBOX_SONGS_PATH + "/Load.wav",)
+    )
+    play_load_sample_thread.start()
+
+    bpm = bpm_tag(spath)
+    play_load_sample_thread.join()
+
+    play_thread = threading.Thread(target=play_song, args=(spath,))
+    play_thread.start()
+
+    while play_thread.is_alive():
+        show_random_light_pattern(bpm)
+
+    GPIO.output(GPIO_TOP_LAMPS, LAMP_OFF)
+    GPIO.output(GPIO_LR_LAMPS, LAMP_OFF)
+    GPIO.output(GPIO_BOT_LAMPS, LAMP_OFF)
+
+    return True
+
+
 def run():
     """
     Main event loop. Waits for song input, plays the song, and synchronizes lights.
     """
     while True:
         number = await_keypad_input()
-        spath = song_path(number)
-
-        if not spath:
-            print(f"No song found for number {number} in {JUKEBOX_SONGS_PATH}")
-            continue
-
-        GPIO.output(GPIO_TOP_LAMPS, LAMP_ON)
-        GPIO.output(GPIO_LR_LAMPS, LAMP_ON)
-        GPIO.output(GPIO_BOT_LAMPS, LAMP_ON)
-
-        play_load_sample_thread = threading.Thread(
-            target=play, args=(JUKEBOX_SONGS_PATH + "/Load.wav",)
-        )
-        play_load_sample_thread.start()
-
-        bpm = bpm_tag(spath)
-        play_load_sample_thread.join()
-
-        play_thread = threading.Thread(target=play, args=(spath,))
-        play_thread.start()
-
-        while play_thread.is_alive():
-            show_random_light_pattern(bpm)
-
-        GPIO.output(GPIO_TOP_LAMPS, LAMP_OFF)
-        GPIO.output(GPIO_LR_LAMPS, LAMP_OFF)
-        GPIO.output(GPIO_BOT_LAMPS, LAMP_OFF)
+        play(number)
 
 
 def test_keypad():
@@ -365,14 +378,13 @@ if __name__ == "__main__":
     subparsers = parser.add_subparsers(dest="command")
 
     # Main mode (renamed to run)
-    run_parser = subparsers.add_parser(
-        "run", help="Run the jukebox with light synchronization."
-    )
+    run_parser = subparsers.add_parser("run", help="Run the Jukebox service.")
     run_parser.add_argument(
         "-p",
         "--path",
         type=str,
         help="Path to the directory containing the songs (default: JUKEBOX_SONGS_PATH)",
+        default=os.getenv("JUKEBOX_SONGS_PATH"),
     )
 
     # Test mode
@@ -395,20 +407,26 @@ if __name__ == "__main__":
         "--keypad", action="store_true", help="Test the keypad input."
     )
 
+    play_parser = subparsers.add_parser("play", help="Play a specific song and quit.")
+    play_parser.add_argument("number", type=int, help="The song number to play.")
+    play_parser.add_argument(
+        "-p",
+        "--path",
+        type=str,
+        help="Path to the directory containing the songs (default: JUKEBOX_SONGS_PATH)",
+        default=os.getenv("JUKEBOX_SONGS_PATH"),
+    )
+
     args = parser.parse_args()
 
-    # Initialize GPIO pins
-
-    GPIO.setup(GPIO_TOP_LAMPS, GPIO.OUT)
-    GPIO.setup(GPIO_LR_LAMPS, GPIO.OUT)
-    GPIO.setup(GPIO_BOT_LAMPS, GPIO.OUT)
-
-    for pin in KEYPAD_GPIO_PINS:
-        GPIO.setup(pin, GPIO.IN)
+    JUKEBOX_SONGS_PATH = args.path
 
     # Run the appropriate mode
 
     if args.command == "test":
+
+        init_gpios()
+
         if args.keypad:
             test_keypad()
         else:
@@ -423,8 +441,6 @@ if __name__ == "__main__":
                 GPIO.cleanup()
 
     elif args.command == "run":
-        JUKEBOX_SONGS_PATH = args.path or os.getenv("JUKEBOX_SONGS_PATH")
-
         if not JUKEBOX_SONGS_PATH or not Path(JUKEBOX_SONGS_PATH).is_dir():
             print("Error: Invalid path to songs directory.")
             print(
@@ -432,8 +448,30 @@ if __name__ == "__main__":
             )
             exit(1)
 
+        init_gpios()
+
         try:
             run()
+        except KeyboardInterrupt:
+            print("\nScript interrupted. Turning off lights and cleaning up GPIO...")
+        finally:
+            GPIO.output(GPIO_TOP_LAMPS, LAMP_OFF)
+            GPIO.output(GPIO_LR_LAMPS, LAMP_OFF)
+            GPIO.output(GPIO_BOT_LAMPS, LAMP_OFF)
+            GPIO.cleanup()
+
+    elif args.command == "play":
+        if not JUKEBOX_SONGS_PATH or not Path(JUKEBOX_SONGS_PATH).is_dir():
+            print("Error: Invalid path to songs directory.")
+            print(
+                "Please set the JUKEBOX_SONGS_PATH environment variable or provide a valid path with the -p flag."
+            )
+            exit(1)
+
+        init_gpios()
+
+        try:
+            play(args.number)
         except KeyboardInterrupt:
             print("\nScript interrupted. Turning off lights and cleaning up GPIO...")
         finally:
