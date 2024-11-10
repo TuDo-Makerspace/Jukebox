@@ -180,5 +180,18 @@ def upload(track_number):
     return jsonify({"error": "No file or link provided."}), 400
 
 
+@app.route("/delete/<int:track_number>", methods=["POST"])
+def delete(track_number):
+    """
+    Delete a track from the Jukebox.
+    """
+    for filename in os.listdir(JUKEBOX_SONGS_PATH):
+        if filename.startswith(f"{track_number}_"):
+            os.remove(os.path.join(JUKEBOX_SONGS_PATH, filename))
+            return jsonify({"success": "Track deleted successfully!"}), 200
+
+    return jsonify({"error": "Track not found."}), 404
+
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)

@@ -154,7 +154,7 @@ def song_path(number):
         str: Path to the song file, or None if no match is found.
     """
     songs_path = Path(JUKEBOX_SONGS_PATH)
-    song_pattern = f"{number}_*.mp3 {number}_*.wav {number}.mp3 {number}.wav"
+    song_pattern = f"{number}_*.mp3 {number}_*.wav"
     song_files = []
 
     for pattern in song_pattern.split():

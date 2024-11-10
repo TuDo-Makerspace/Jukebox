@@ -95,7 +95,7 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="uploadModalLabel">Upload Track</h5>
+                    <h5 class="modal-title" id="uploadModalLabel">Upload or Delete Track</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
@@ -111,10 +111,16 @@
                             data-bs-target="#mp3WavModal">MP3/WAV</button>
                         <!-- YouTube/SoundCloud/Bandcamp Upload Button -->
                         <button class="btn btn-danger w-100" id="ytdlpUploadButton" data-bs-toggle="modal"
-                            data-bs-target="#ytdlpModal">YouTube/SoundCloud</button>
+                            data-bs-target="#ytdlpModal">YouTube, SoundCloud, Bandcamp, ...</button>
                         <!-- Spotify Upload Button -->
                         <button class="btn btn-success w-100" id="spotifyUploadButton" data-bs-toggle="modal"
                             data-bs-target="#spotifyModal">Spotify</button>
+                    </div>
+                    <div id="deleteSection">
+                        <h5 style="padding-top: 20px; padding-bottom: 10px; font-weight: bold;">Delete:</h5>
+                        <div class="d-flex flex-column gap-2">
+                            <button id="deleteTrackButton" class="btn btn-secondary w-100">Delete Track</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -131,7 +137,6 @@
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
-                        <p><strong>Track Number:</strong> <span id="mp3WavTrackNumber"></span></p>
                         <div class="mb-3">
                             <input class="form-control" type="file" id="file" name="file" accept=".mp3,.wav" required>
                         </div>
@@ -156,11 +161,10 @@
                     </div>
                     <div class="modal-body">
                         <p>See <a href="https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md"
-                                target="_blank">here</a> for supported
+                                target="_blank">here</a> for a list of supported
                             websites.</p>
                     </div>
                     <div class="modal-body">
-                        <p><strong>Track Number:</strong> <span id="ytdlpTrackNumber"></span></p>
                         <div class="mb-3">
                             <input class="form-control" type="url" id="ytdlp_link" name="ytdlp_link"
                                 placeholder="Enter link" required>
@@ -185,7 +189,6 @@
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
-                        <p><strong>Track Number:</strong> <span id="spotifyTrackNumber"></span></p>
                         <div class="mb-3">
                             <input class="form-control" type="url" id="spotify_link" name="spotify_link"
                                 placeholder="Enter Spotify link" required>
@@ -261,6 +264,7 @@
         const mp3WavForm = document.getElementById('mp3WavForm');
         const ytdlpForm = document.getElementById('ytdlpForm');
         const spotifyForm = document.getElementById('spotifyForm');
+        const deleteForm = document.getElementById('deleteForm');
 
         const modalTrackNumber = document.getElementById('modalTrackNumber');
         const mp3WavTrackNumber = document.getElementById('mp3WavTrackNumber');
@@ -280,9 +284,38 @@
             if (!isEmpty) {
                 document.getElementById('modalTrackName').textContent = trackName;
                 document.getElementById('modalTrackTitleContainer').style.display = 'block';
+                document.getElementById('deleteSection').style.display = 'block'; // Show delete section for uploaded tracks
             } else {
                 document.getElementById('modalTrackTitleContainer').style.display = 'none';
+                document.getElementById('deleteSection').style.display = 'none'; // Hide delete section for empty tracks
             }
+
+            // Update the delete button action dynamically
+            const deleteButton = document.getElementById('deleteTrackButton');
+            deleteButton.onclick = async () => {
+                try {
+                    const response = await fetch(`/delete/${trackNumber}`, { method: 'POST' });
+                    const result = await response.json();
+
+                    if (response.ok) {
+                        // Close the modal and update the UI
+                        uploadModal.hide();
+
+                        // Remove the track box from the grid
+                        const trackBox = document.querySelector(`.track-box[data-track-number="${trackNumber}"]`);
+                        if (trackBox) {
+                            trackBox.classList.add('empty');
+                            trackBox.querySelector('.track-name').textContent = 'Empty Slot';
+                        }
+                    } else {
+                        document.getElementById('errorModalMessage').textContent = result.error || 'An error occurred.';
+                        errorModal.show();
+                    }
+                } catch (error) {
+                    document.getElementById('errorModalMessage').textContent = 'An error occurred while processing the request. Please try again.';
+                    errorModal.show();
+                }
+            };
         });
 
         // Set up MP3/WAV modal
