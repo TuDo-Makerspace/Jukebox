@@ -271,6 +271,11 @@
         const ytdlpTrackNumber = document.getElementById('ytdlpTrackNumber');
         const spotifyTrackNumber = document.getElementById('spotifyTrackNumber');
 
+        const deleteButton = document.getElementById('deleteTrackButton');
+        const mp3WavUploadButton = document.getElementById('mp3WavUploadButton');
+        const ytdlpUploadButton = document.getElementById('ytdlpUploadButton');
+        const spotifyUploadButton = document.getElementById('spotifyUploadButton');
+
         // Handle when the main upload modal is shown
         uploadModal._element.addEventListener('show.bs.modal', function (event) {
             const button = event.relatedTarget;
@@ -291,7 +296,6 @@
             }
 
             // Update the delete button action dynamically
-            const deleteButton = document.getElementById('deleteTrackButton');
             deleteButton.onclick = async () => {
                 try {
                     const response = await fetch(`/delete/${trackNumber}`, { method: 'POST' });
@@ -312,28 +316,10 @@
                         errorModal.show();
                     }
                 } catch (error) {
-                    document.getElementById('errorModalMessage').textContent = 'An error occurred while processing the request. Please try again.';
+                    document.getElementById('errorModalMessage').textContent = 'An error occurred while processing the request.'
                     errorModal.show();
                 }
             };
-        });
-
-        // Set up MP3/WAV modal
-        document.getElementById('mp3WavUploadButton').addEventListener('click', function () {
-            mp3WavTrackNumber.textContent = modalTrackNumber.textContent;
-            mp3WavForm.action = `/upload/${modalTrackNumber.textContent}`;
-        });
-
-        // Set up ytdlp modal
-        document.getElementById('ytdlpUploadButton').addEventListener('click', function () {
-            ytdlpTrackNumber.textContent = modalTrackNumber.textContent;
-            ytdlpForm.action = `/upload/${modalTrackNumber.textContent}`;
-        });
-
-        // Set up Spotify modal
-        document.getElementById('spotifyUploadButton').addEventListener('click', function () {
-            spotifyTrackNumber.textContent = modalTrackNumber.textContent;
-            spotifyForm.action = `/upload/${modalTrackNumber.textContent}`;
         });
 
         // Handle MP3/WAV form submission
@@ -346,7 +332,7 @@
             const formData = new FormData(this);
 
             try {
-                const response = await fetch(this.action, { method: 'POST', body: formData });
+                const response = await fetch(`/upload/${modalTrackNumber.textContent}`, { method: 'POST', body: formData });
                 const result = await response.json();
                 if (response.ok) {
                     location.reload();
@@ -356,7 +342,7 @@
                     errorModal.show();
                 }
             } catch (error) {
-                document.getElementById('errorModalMessage').textContent = 'An error occurred while processing the request. Please try again.';
+                document.getElementById('errorModalMessage').textContent = 'An error occurred while processing the request.'
                 uploadingModal.hide();
                 errorModal.show();
             }
@@ -371,7 +357,7 @@
 
             const formData = new FormData(this);
             try {
-                const response = await fetch(this.action, { method: 'POST', body: formData });
+                const response = await fetch(`/upload/${modalTrackNumber.textContent}`, { method: 'POST', body: formData });
                 const result = await response.json();
                 if (response.ok) {
                     location.reload();
@@ -381,7 +367,7 @@
                     errorModal.show();
                 }
             } catch (error) {
-                document.getElementById('errorModalMessage').textContent = 'An error occurred while processing the request. Please try again.';
+                document.getElementById('errorModalMessage').textContent = 'An error occurred while processing the request.'
                 downloadingModal.hide();
                 errorModal.show();
             }
@@ -396,7 +382,7 @@
 
             const formData = new FormData(this);
             try {
-                const response = await fetch(this.action, { method: 'POST', body: formData });
+                const response = await fetch(`/upload/${modalTrackNumber.textContent}`, { method: 'POST', body: formData });
                 const result = await response.json();
                 if (response.ok) {
                     location.reload();
@@ -406,7 +392,7 @@
                     errorModal.show();
                 }
             } catch (error) {
-                document.getElementById('errorModalMessage').textContent = 'An error occurred while processing the request. Please try again.';
+                document.getElementById('errorModalMessage').textContent = 'An error occurred while processing the request.'
                 downloadingModal.hide();
                 errorModal.show();
             }
