@@ -1,7 +1,11 @@
-ffmpeg
-bpm-tools
-libsox-fmt-mp3
+System:
+    ffmpeg
+    bpm-tools
+    libsox-fmt-mp3
 
-flask
+Python3:
+    flask
+    yt-dlp
+    spotdl
 
 Additonally: Modify /boot/firmware/config.txt to disable lamps on boot

@@ -112,6 +112,9 @@
                         <!-- YouTube Upload Button -->
                         <button class="btn btn-danger upload-btn" id="youtubeUploadButton" data-bs-toggle="modal"
                             data-bs-target="#youtubeModal">YouTube</button>
+                        <!-- Spotify Upload Button -->
+                        <button class="btn btn-success upload-btn" id="spotifyUploadButton" data-bs-toggle="modal"
+                            data-bs-target="#spotifyModal">Spotify</button>
                     </div>
                 </div>
             </div>
@@ -130,7 +133,6 @@
                     <div class="modal-body">
                         <p><strong>Track Number:</strong> <span id="mp3WavTrackNumber"></span></p>
                         <div class="mb-3">
-                            <label for="file" class="form-label">Select MP3 or WAV File</label>
                             <input class="form-control" type="file" id="file" name="file" accept=".mp3,.wav" required>
                         </div>
                     </div>
@@ -155,9 +157,33 @@
                     <div class="modal-body">
                         <p><strong>Track Number:</strong> <span id="youtubeTrackNumber"></span></p>
                         <div class="mb-3">
-                            <label for="youtube_link" class="form-label">YouTube Link</label>
                             <input class="form-control" type="url" id="youtube_link" name="youtube_link"
                                 placeholder="Enter YouTube link" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-primary">Upload</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Spotify Upload Modal -->
+    <div class="modal fade" id="spotifyModal" tabindex="-1" aria-labelledby="spotifyModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form method="POST" id="spotifyForm">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="spotifyModalLabel">Upload Spotify Link</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p><strong>Track Number:</strong> <span id="spotifyTrackNumber"></span></p>
+                        <div class="mb-3">
+                            <input class="form-control" type="url" id="spotify_link" name="spotify_link"
+                                placeholder="Enter Spotify link" required>
                         </div>
                     </div>
                     <div class="modal-footer">
@@ -196,7 +222,7 @@
                     <div class="spinner-border text-primary mb-3" role="status">
                         <span class="visually-hidden">Loading...</span>
                     </div>
-                    <p>Downloading YouTube Video... Please wait.</p>
+                    <p>Downloading song... Please wait.</p>
                 </div>
             </div>
         </div>
@@ -223,6 +249,7 @@
         const uploadModal = new bootstrap.Modal(document.getElementById('uploadModal'));
         const mp3WavModal = new bootstrap.Modal(document.getElementById('mp3WavModal'));
         const youtubeModal = new bootstrap.Modal(document.getElementById('youtubeModal'));
+        const spotifyModal = new bootstrap.Modal(document.getElementById('spotifyModal'));
         const downloadingModal = new bootstrap.Modal(document.getElementById('downloadingModal'));
         const uploadingModal = new bootstrap.Modal(document.getElementById('uploadingModal'));
         const errorModal = new bootstrap.Modal(document.getElementById('errorModal'));
@@ -230,10 +257,12 @@
         const uploadForm = document.getElementById('uploadForm');
         const mp3WavForm = document.getElementById('mp3WavForm');
         const youtubeForm = document.getElementById('youtubeForm');
+        const spotifyForm = document.getElementById('spotifyForm');
 
         const modalTrackNumber = document.getElementById('modalTrackNumber');
         const mp3WavTrackNumber = document.getElementById('mp3WavTrackNumber');
         const youtubeTrackNumber = document.getElementById('youtubeTrackNumber');
+        const spotifyTrackNumber = document.getElementById('spotifyTrackNumber');
 
         // Handle when the main upload modal is shown
         uploadModal._element.addEventListener('show.bs.modal', function (event) {
@@ -263,6 +292,12 @@
         document.getElementById('youtubeUploadButton').addEventListener('click', function () {
             youtubeTrackNumber.textContent = modalTrackNumber.textContent;
             youtubeForm.action = `/upload/${modalTrackNumber.textContent}`;
+        });
+
+        // Set up Spotify modal
+        document.getElementById('spotifyUploadButton').addEventListener('click', function () {
+            spotifyTrackNumber.textContent = modalTrackNumber.textContent;
+            spotifyForm.action = `/upload/${modalTrackNumber.textContent}`;
         });
 
         // Handle MP3/WAV form submission
@@ -296,6 +331,31 @@
             event.preventDefault();
 
             youtubeModal.hide();
+            downloadingModal.show();
+
+            const formData = new FormData(this);
+            try {
+                const response = await fetch(this.action, { method: 'POST', body: formData });
+                const result = await response.json();
+                if (response.ok) {
+                    location.reload();
+                } else {
+                    document.getElementById('errorModalMessage').textContent = result.error || 'An error occurred.';
+                    downloadingModal.hide();
+                    errorModal.show();
+                }
+            } catch (error) {
+                document.getElementById('errorModalMessage').textContent = 'An error occurred while processing the request. Please try again.';
+                downloadingModal.hide();
+                errorModal.show();
+            }
+        });
+
+        // Handle Spotify form submission
+        spotifyForm.addEventListener('submit', async function (event) {
+            event.preventDefault();
+
+            spotifyModal.hide();
             downloadingModal.show();
 
             const formData = new FormData(this);

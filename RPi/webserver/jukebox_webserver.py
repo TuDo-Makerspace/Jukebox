@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, jsonify
 import os
 import shutil
+import subprocess
 from yt_dlp import YoutubeDL
 
 app = Flask(__name__)
@@ -8,6 +9,9 @@ app = Flask(__name__)
 # Environment variable for the songs directory
 JUKEBOX_SONGS_PATH = os.getenv("JUKEBOX_SONGS_PATH", "./songs")
 os.makedirs(JUKEBOX_SONGS_PATH, exist_ok=True)
+
+# Temporary directory for Downloads
+TMP_DIR = "/tmp/jukeboxdl"
 
 
 @app.route("/")
@@ -69,7 +73,8 @@ def upload(track_number):
     youtube_link = request.form.get("youtube_link")
     if youtube_link:
         try:
-            tmp_dir = "/tmp"
+            tmp_dir = TMP_DIR
+            os.makedirs(tmp_dir, exist_ok=True)
             tmp_file_template = os.path.join(
                 tmp_dir, f"{track_number}_%(title)s.%(ext)s"
             )
@@ -123,7 +128,56 @@ def upload(track_number):
                 400,
             )
 
-    return jsonify({"error": "No file or YouTube link provided."}), 400
+    spotify_link = request.form.get("spotify_link")
+    if spotify_link:
+        try:
+            tmp_dir = TMP_DIR
+            os.makedirs(tmp_dir, exist_ok=True)
+
+            # Store the current working directory
+            cwd = os.getcwd()
+
+            # cd to /tmp (spotdl doesn't have a --output option)
+            os.chdir(tmp_dir)
+
+            command = ["spotdl", spotify_link]
+            process = subprocess.run(command, capture_output=True, text=True)
+
+            if process.returncode != 0:
+                return {"error": process.stderr}, 400
+
+            # Return to the original directory
+            os.chdir(cwd)
+
+            # Locate the downloaded file
+            downloaded_file = None
+            for file in os.listdir(tmp_dir):
+                if file.endswith(".mp3"):
+                    downloaded_file = os.path.join(tmp_dir, file)
+                    break
+
+            if not downloaded_file:
+                return {"error": "Failed to locate the downloaded file."}, 500
+
+            # Move the file to the JUKEBOX_SONGS_PATH with the track number prefix
+            final_filename = os.path.join(
+                JUKEBOX_SONGS_PATH,
+                f"{track_number}_{os.path.basename(downloaded_file)}",
+            )
+
+            # Remove old file for the same track number
+            for existing_file in os.listdir(JUKEBOX_SONGS_PATH):
+                if existing_file.startswith(f"{track_number}_"):
+                    os.remove(os.path.join(JUKEBOX_SONGS_PATH, existing_file))
+
+            shutil.move(downloaded_file, final_filename)
+
+            return {"success": f"Track downloaded and saved to {final_filename}"}, 200
+
+        except Exception as e:
+            return {"error": f"An error occurred: {str(e)}"}, 500
+
+    return jsonify({"error": "No file or link provided."}), 400
 
 
 if __name__ == "__main__":
