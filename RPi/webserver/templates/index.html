@@ -109,9 +109,9 @@
                         <!-- MP3/WAV Upload Button -->
                         <button class="btn btn-primary upload-btn" id="mp3WavUploadButton" data-bs-toggle="modal"
                             data-bs-target="#mp3WavModal">MP3/WAV</button>
-                        <!-- YouTube Upload Button -->
-                        <button class="btn btn-danger upload-btn" id="youtubeUploadButton" data-bs-toggle="modal"
-                            data-bs-target="#youtubeModal">YouTube</button>
+                        <!-- YouTube/SoundCloud/Bandcamp Upload Button -->
+                        <button class="btn btn-danger upload-btn" id="ytdlpUploadButton" data-bs-toggle="modal"
+                            data-bs-target="#ytdlpModal">YouTube/SoundCloud/Bandcamp</button>
                         <!-- Spotify Upload Button -->
                         <button class="btn btn-success upload-btn" id="spotifyUploadButton" data-bs-toggle="modal"
                             data-bs-target="#spotifyModal">Spotify</button>
@@ -145,20 +145,25 @@
         </div>
     </div>
 
-    <!-- YouTube Upload Modal -->
-    <div class="modal fade" id="youtubeModal" tabindex="-1" aria-labelledby="youtubeModalLabel" aria-hidden="true">
+    <!-- ytdlp Upload Modal -->
+    <div class="modal fade" id="ytdlpModal" tabindex="-1" aria-labelledby="ytdlpModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
-                <form method="POST" id="youtubeForm">
+                <form method="POST" id="ytdlpForm">
                     <div class="modal-header">
-                        <h5 class="modal-title" id="youtubeModalLabel">Upload YouTube Link</h5>
+                        <h5 class="modal-title" id="ytdlpModalLabel">Upload Link</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
-                        <p><strong>Track Number:</strong> <span id="youtubeTrackNumber"></span></p>
+                        <p>See <a href="https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md"
+                                target="_blank">here</a> for supported
+                            websites.</p>
+                    </div>
+                    <div class="modal-body">
+                        <p><strong>Track Number:</strong> <span id="ytdlpTrackNumber"></span></p>
                         <div class="mb-3">
-                            <input class="form-control" type="url" id="youtube_link" name="youtube_link"
-                                placeholder="Enter YouTube link" required>
+                            <input class="form-control" type="url" id="ytdlp_link" name="ytdlp_link"
+                                placeholder="Enter link" required>
                         </div>
                     </div>
                     <div class="modal-footer">
@@ -204,7 +209,6 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body" id="errorModalMessage">
-                    <!-- Error message will be dynamically inserted here -->
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -248,20 +252,19 @@
     <script>
         const uploadModal = new bootstrap.Modal(document.getElementById('uploadModal'));
         const mp3WavModal = new bootstrap.Modal(document.getElementById('mp3WavModal'));
-        const youtubeModal = new bootstrap.Modal(document.getElementById('youtubeModal'));
+        const ytdlpModal = new bootstrap.Modal(document.getElementById('ytdlpModal'));
         const spotifyModal = new bootstrap.Modal(document.getElementById('spotifyModal'));
         const downloadingModal = new bootstrap.Modal(document.getElementById('downloadingModal'));
         const uploadingModal = new bootstrap.Modal(document.getElementById('uploadingModal'));
         const errorModal = new bootstrap.Modal(document.getElementById('errorModal'));
 
-        const uploadForm = document.getElementById('uploadForm');
         const mp3WavForm = document.getElementById('mp3WavForm');
-        const youtubeForm = document.getElementById('youtubeForm');
+        const ytdlpForm = document.getElementById('ytdlpForm');
         const spotifyForm = document.getElementById('spotifyForm');
 
         const modalTrackNumber = document.getElementById('modalTrackNumber');
         const mp3WavTrackNumber = document.getElementById('mp3WavTrackNumber');
-        const youtubeTrackNumber = document.getElementById('youtubeTrackNumber');
+        const ytdlpTrackNumber = document.getElementById('ytdlpTrackNumber');
         const spotifyTrackNumber = document.getElementById('spotifyTrackNumber');
 
         // Handle when the main upload modal is shown
@@ -288,10 +291,10 @@
             mp3WavForm.action = `/upload/${modalTrackNumber.textContent}`;
         });
 
-        // Set up YouTube modal
-        document.getElementById('youtubeUploadButton').addEventListener('click', function () {
-            youtubeTrackNumber.textContent = modalTrackNumber.textContent;
-            youtubeForm.action = `/upload/${modalTrackNumber.textContent}`;
+        // Set up ytdlp modal
+        document.getElementById('ytdlpUploadButton').addEventListener('click', function () {
+            ytdlpTrackNumber.textContent = modalTrackNumber.textContent;
+            ytdlpForm.action = `/upload/${modalTrackNumber.textContent}`;
         });
 
         // Set up Spotify modal
@@ -326,11 +329,11 @@
             }
         });
 
-        // Handle YouTube form submission
-        youtubeForm.addEventListener('submit', async function (event) {
+        // Handle ytdlp form submission
+        ytdlpForm.addEventListener('submit', async function (event) {
             event.preventDefault();
 
-            youtubeModal.hide();
+            ytdlpModal.hide();
             downloadingModal.show();
 
             const formData = new FormData(this);

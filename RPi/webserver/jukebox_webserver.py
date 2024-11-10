@@ -70,8 +70,8 @@ def upload(track_number):
             )
 
     # Handle YouTube link uploads
-    youtube_link = request.form.get("youtube_link")
-    if youtube_link:
+    ytdlp_link = request.form.get("ytdlp_link")
+    if ytdlp_link:
         try:
             tmp_dir = TMP_DIR
             os.makedirs(tmp_dir, exist_ok=True)
@@ -93,7 +93,7 @@ def upload(track_number):
             }
 
             with YoutubeDL(ydl_opts) as ydl:
-                info_dict = ydl.extract_info(youtube_link, download=True)
+                info_dict = ydl.extract_info(ytdlp_link, download=True)
                 title = info_dict.get("title", None)
 
             # Find the downloaded file in /tmp
@@ -117,14 +117,14 @@ def upload(track_number):
                 shutil.move(downloaded_file, final_filename)
 
                 return (
-                    jsonify({"success": "YouTube audio downloaded successfully!"}),
+                    jsonify({"success": "Audio downloaded successfully!"}),
                     200,
                 )
 
             return jsonify({"error": "Failed to locate downloaded file."}), 500
         except Exception as e:
             return (
-                jsonify({"error": f"Failed to download YouTube audio: {str(e)}"}),
+                jsonify({"error": f"Failed to download audio: {str(e)}"}),
                 400,
             )
 
