@@ -157,15 +157,3 @@ systemctl restart jukebox.service
 echo "Enabling and restarting the Jukebox Web Server service..."
 systemctl enable jukebox-webserver.service
 systemctl restart jukebox-webserver.service
-
-# Wait for services to activate
-echo "Waiting for services to start..."
-sleep 10
-
-# Check the status of the services
-if systemctl is-active --quiet jukebox.service && systemctl is-active --quiet jukebox-webserver.service; then
-    echo "Jukebox and Web Server services installed, restarted, and running successfully!"
-else
-    echo "Error: Failed to start one or both services."
-    exit 1
-fi
