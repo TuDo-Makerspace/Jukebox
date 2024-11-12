@@ -136,6 +136,8 @@ KEYPAD_LOOKUP = {
 
 KEYPAD_DEBOUNCE_DELAY = 0.1  # seconds
 
+KEYPAD_TIMEOUT = 5  # seconds
+
 ################################################################
 # Functions
 ################################################################
@@ -268,8 +270,13 @@ def await_keypad_input():
         str: The button pressed (e.g., "1", "R", "G").
     """
     previous_state = None
+    timeout_in = time.time() + KEYPAD_TIMEOUT
 
     while True:
+        # Check for timeout
+        if time.time() > timeout_in:
+            return None
+
         # Read current states of GPIO pins
         current_state = tuple(GPIO.input(pin) for pin in GPIO_KEYPAD_PINS)
 
@@ -311,12 +318,21 @@ def await_track_selection():
         key = await_keypad_input()
         if key in ["1", "2", "3", "4", "5", "6", "7", "8", "9"]:
             input += key
-        elif key == "R":
+        elif key == "R" or key == None:
+            # Blink all lights to indicate reset
+            GPIO.output(GPIO_TOP_LAMPS, LAMP_ON)
+            GPIO.output(GPIO_LR_LAMPS, LAMP_ON)
+            GPIO.output(GPIO_BOT_LAMPS, LAMP_ON)
+
+            time.sleep(0.25)
+
+            GPIO.output(GPIO_TOP_LAMPS, LAMP_OFF)
+            GPIO.output(GPIO_LR_LAMPS, LAMP_OFF)
+            GPIO.output(GPIO_BOT_LAMPS, LAMP_OFF)
+
             input = ""
         elif key == "G" and input:
             return int(input)
-
-    return 0
 
 
 def test_lights(args):
