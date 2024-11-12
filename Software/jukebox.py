@@ -53,19 +53,9 @@ ASSETS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets")
 LAMP_ON = GPIO.LOW
 LAMP_OFF = GPIO.HIGH
 
-GPIO_TOP_LAMPS = 12  # PWM capable
-GPIO_LR_LAMPS = 13  # PWM capable
-GPIO_BOT_LAMPS = 18  # PWM capable
-
-################################################################
-# Keypad GPIOs
-################################################################
-
-KEYPAD_GPIO_PINS = [5, 6, 7, 8]  # Example GPIO pins for the keypad
-
-################################################################
-# Light patterns
-################################################################
+GPIO_TOP_LAMPS = 5
+GPIO_LR_LAMPS = 6
+GPIO_BOT_LAMPS = 26
 
 LIGHT_PATTERN_BLINK_ALL = [
     [1, 1, 1],
@@ -119,6 +109,33 @@ ALL_LIGHT_PATTERNS = [
 ]
 
 ################################################################
+# Keypad
+################################################################
+
+GPIO_KEYPAD_PINS = [14, 15, 23, 24]
+
+KEYPAD_RELEASED = (0, 0, 0, 0)
+
+KEYPAD_LOOKUP = {
+    (1, 0, 0, 0): "1",
+    (0, 1, 0, 0): "2",
+    (0, 0, 1, 0): "3",
+    (0, 0, 0, 1): "4",
+    (1, 1, 0, 0): "5",
+    (1, 0, 1, 0): "6",
+    (1, 0, 0, 1): "7",
+    (0, 1, 1, 0): "8",
+    (0, 1, 0, 1): "9",
+    (1, 1, 1, 1): "R",  # Reset button
+    (1, 1, 0, 1): "G",  # Green button
+    (1, 0, 1, 1): "YELLOW",  # Yellow button
+    (0, 1, 1, 1): "BLUE",  # Blue button
+    (1, 1, 1, 0): "RED",  # Red button
+}
+
+KEYPAD_DEBOUNCE_DELAY = 0.1  # seconds
+
+################################################################
 # Functions
 ################################################################
 
@@ -135,7 +152,7 @@ def init_gpios():
     GPIO.setmode(GPIO.BCM)
 
     # Set the GPIO pins for the keypad as inputs with pull-down resistors
-    for pin in KEYPAD_GPIO_PINS:
+    for pin in GPIO_KEYPAD_PINS:
         GPIO.setup(pin, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 
     # Set the GPIO pins for the lights as outputs
@@ -247,9 +264,59 @@ def await_keypad_input():
     Wait for and return input from the keypad.
 
     Returns:
-        int: The song number entered by the user.
+        str: The button pressed (e.g., "1", "R", "G").
     """
-    # TODO: Implement keypad input
+    previous_state = None
+
+    while True:
+        # Read current states of GPIO pins
+        current_state = tuple(GPIO.input(pin) for pin in GPIO_KEYPAD_PINS)
+
+        # Check if the state matches a button in the lookup table
+        if current_state in KEYPAD_LOOKUP and current_state != previous_state:
+            button = KEYPAD_LOOKUP[current_state]
+
+            # Turn on lamps
+            GPIO.output(GPIO_TOP_LAMPS, LAMP_ON)
+            GPIO.output(GPIO_LR_LAMPS, LAMP_ON)
+            GPIO.output(GPIO_BOT_LAMPS, LAMP_ON)
+
+            print(f"Button Pressed: {button}")
+
+            # Debounce
+            time.sleep(KEYPAD_DEBOUNCE_DELAY)
+
+            # Wait for keypad release (check for all pins to be low)
+            while tuple(GPIO.input(pin) for pin in GPIO_KEYPAD_PINS) != KEYPAD_RELEASED:
+                pass
+
+            # Debounce release
+            time.sleep(KEYPAD_DEBOUNCE_DELAY)
+
+            # Turn off lamps
+            GPIO.output(GPIO_TOP_LAMPS, LAMP_OFF)
+            GPIO.output(GPIO_LR_LAMPS, LAMP_OFF)
+            GPIO.output(GPIO_BOT_LAMPS, LAMP_OFF)
+
+            return button
+
+        previous_state = current_state
+
+        # Small delay to avoid excessive CPU usage
+        time.sleep(0.05)
+
+
+def await_track_selection():
+    input = ""
+    while True:
+        key = await_keypad_input()
+        if key in ["1", "2", "3", "4", "5", "6", "7", "8", "9"]:
+            input += key
+        elif key == "R":
+            input = ""
+        elif key == "G":
+            return int(input)
+
     return 0
 
 
@@ -316,7 +383,7 @@ def run():
     Main event loop. Waits for song input, plays the song, and synchronizes lights.
     """
     while True:
-        number = await_keypad_input()
+        number = await_track_selection()
         play(number)
 
 
@@ -344,7 +411,7 @@ def test_keypad():
     try:
         while True:
             # Read current states of GPIO pins
-            current_states = [GPIO.input(pin) for pin in KEYPAD_GPIO_PINS]
+            current_states = [GPIO.input(pin) for pin in GPIO_KEYPAD_PINS]
 
             # Update the terminal only if states differ from the previous ones
             if current_states != previous_states:
@@ -353,7 +420,7 @@ def test_keypad():
                 print("===================")
                 print("GPIO | State")
                 print("-----|-------")
-                for pin, state in zip(KEYPAD_GPIO_PINS, current_states):
+                for pin, state in zip(GPIO_KEYPAD_PINS, current_states):
                     print(f"{pin:>4} | {state}")
 
                 # Update previous states
