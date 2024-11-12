@@ -366,6 +366,23 @@ def play(number):
 
     if not spath:
         print(f"No song found for number {number} in {JUKEBOX_SONGS_PATH}")
+        # Turn on all lamps
+        GPIO.output(GPIO_TOP_LAMPS, LAMP_ON)
+        GPIO.output(GPIO_LR_LAMPS, LAMP_ON)
+        GPIO.output(GPIO_BOT_LAMPS, LAMP_ON)
+
+        # Play TrackNotFound.wav
+        try:
+            play_song(ASSETS_PATH + "/TrackNotFound.wav")
+        except:
+            print("Failed to play TrackNotFound.wav")
+            time.sleep(1)
+
+        # Turn off all lamps
+        GPIO.output(GPIO_TOP_LAMPS, LAMP_OFF)
+        GPIO.output(GPIO_LR_LAMPS, LAMP_OFF)
+        GPIO.output(GPIO_BOT_LAMPS, LAMP_OFF)
+
         return False
 
     GPIO.output(GPIO_TOP_LAMPS, LAMP_ON)

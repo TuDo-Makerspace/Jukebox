@@ -165,3 +165,5 @@ systemctl restart jukebox.service
 echo "Enabling and restarting the Jukebox Web Server service..."
 systemctl enable jukebox-webserver.service
 systemctl restart jukebox-webserver.service
+
+echo "Installation complete. A restart may be required."
