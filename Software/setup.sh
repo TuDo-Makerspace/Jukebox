@@ -102,10 +102,10 @@ if [[ $? -ne 0 ]]; then
     exit 1
 fi
 
-# Create a systemd service file for the Jukebox
+# Create or update systemd service file for the Jukebox
 JUKEBOX_SERVICE_FILE="/etc/systemd/system/jukebox.service"
 
-echo "Creating systemd service file at $JUKEBOX_SERVICE_FILE..."
+echo "Creating or updating systemd service file at $JUKEBOX_SERVICE_FILE..."
 cat <<EOL > "$JUKEBOX_SERVICE_FILE"
 [Unit]
 Description=Jukebox Service
@@ -123,16 +123,10 @@ KillMode=control-group
 WantedBy=multi-user.target
 EOL
 
-# Reload systemd and enable the Jukebox service
-echo "Enabling and starting the Jukebox service..."
-systemctl daemon-reload
-systemctl enable jukebox.service
-systemctl start jukebox.service
-
-# Create a systemd service file for the Jukebox Web Server
+# Create or update systemd service file for the Jukebox Web Server
 WEBSERVER_SERVICE_FILE="/etc/systemd/system/jukebox-webserver.service"
 
-echo "Creating systemd service file at $WEBSERVER_SERVICE_FILE..."
+echo "Creating or updating systemd service file at $WEBSERVER_SERVICE_FILE..."
 cat <<EOL > "$WEBSERVER_SERVICE_FILE"
 [Unit]
 Description=Jukebox Web Server
@@ -151,15 +145,26 @@ KillMode=control-group
 WantedBy=multi-user.target
 EOL
 
-# Reload systemd and enable the Jukebox Web Server service
-echo "Enabling and starting the Jukebox Web Server service..."
+# Reload systemd to apply changes
+echo "Reloading systemd configuration..."
 systemctl daemon-reload
+
+# Enable and restart services
+echo "Enabling and restarting the Jukebox service..."
+systemctl enable jukebox.service
+systemctl restart jukebox.service
+
+echo "Enabling and restarting the Jukebox Web Server service..."
 systemctl enable jukebox-webserver.service
-systemctl start jukebox-webserver.service
+systemctl restart jukebox-webserver.service
+
+# Wait for services to activate
+echo "Waiting for services to start..."
+sleep 10
 
 # Check the status of the services
 if systemctl is-active --quiet jukebox.service && systemctl is-active --quiet jukebox-webserver.service; then
-    echo "Jukebox and Web Server services installed and running successfully!"
+    echo "Jukebox and Web Server services installed, restarted, and running successfully!"
 else
     echo "Error: Failed to start one or both services."
     exit 1
