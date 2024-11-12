@@ -15,6 +15,7 @@ os.makedirs(JUKEBOX_SONGS_PATH, exist_ok=True)
 TMP_DIR = "/tmp/jukeboxdl"
 os.makedirs(TMP_DIR, exist_ok=True)
 
+
 def bpm_tag(file_path):
     """
     Run bpm-tag on the given file.
@@ -253,4 +254,4 @@ def delete(track_number):
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    app.run(host="0.0.0.0", port=80, debug=True)
