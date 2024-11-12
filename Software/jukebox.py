@@ -117,20 +117,21 @@ GPIO_KEYPAD_PINS = [14, 15, 23, 24]
 KEYPAD_RELEASED = (0, 0, 0, 0)
 
 KEYPAD_LOOKUP = {
-    (1, 0, 0, 0): "1",
-    (0, 1, 0, 0): "2",
-    (0, 0, 1, 0): "3",
-    (0, 0, 0, 1): "4",
-    (1, 1, 0, 0): "5",
-    (1, 0, 1, 0): "6",
-    (1, 0, 0, 1): "7",
-    (0, 1, 1, 0): "8",
-    (0, 1, 0, 1): "9",
-    (1, 1, 1, 1): "R",  # Reset button
-    (1, 1, 0, 1): "G",  # Green button
-    (1, 0, 1, 1): "YELLOW",  # Yellow button
-    (0, 1, 1, 1): "BLUE",  # Blue button
-    (1, 1, 1, 0): "RED",  # Red button
+    (0, 1, 0, 1): "0",  # CAUTION: Bad contact
+    (1, 0, 1, 1): "1",
+    (1, 0, 0, 1): "2",
+    (1, 0, 1, 0): "3",
+    (0, 0, 1, 1): "4",
+    (0, 0, 0, 1): "5",
+    (0, 0, 1, 0): "6",
+    (1, 1, 1, 1): "7",
+    (1, 1, 0, 1): "8",
+    (1, 1, 1, 0): "9",
+    (0, 1, 1, 1): "R",  # Reset button
+    (0, 1, 1, 0): "G",  # Confirm button
+    (1, 0, 0, 0): "YELLOW",  # Yellow button
+    (0, 1, 0, 0): "BLUE",  # Blue button
+    (1, 1, 0, 0): "RED",  # Red button
 }
 
 KEYPAD_DEBOUNCE_DELAY = 0.1  # seconds
@@ -487,7 +488,8 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    JUKEBOX_SONGS_PATH = args.path
+    if args.command != "test":
+        JUKEBOX_SONGS_PATH = args.path
 
     # Run the appropriate mode
 
