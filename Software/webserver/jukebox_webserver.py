@@ -8,7 +8,7 @@ from yt_dlp import YoutubeDL
 app = Flask(__name__)
 
 # Environment variable for the songs directory
-JUKEBOX_SONGS_PATH = os.getenv("JUKEBOX_SONGS_PATH", "./songs")
+JUKEBOX_SONGS_PATH = os.getenv("JUKEBOX_SONGS_PATH")
 os.makedirs(JUKEBOX_SONGS_PATH, exist_ok=True)
 
 # Temporary directory for Downloads
