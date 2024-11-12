@@ -29,6 +29,20 @@ check_root() {
 # Check if running as root
 check_root
 
+# Check for assets/Load.wav
+INSTALLER_PATH="$(dirname "$(realpath "$0")")"
+ASSETS_PATH="$INSTALLER_PATH/assets"
+
+if [[ ! -d "$ASSETS_PATH" ]]; then
+    echo "WARNING: The assets directory is missing."
+    echo "Please refer to the README.md for instructions on where to download the assets."
+    read -p "Do you wish to continue without the assets for now? (y/N): " CONTINUE_WITHOUT_ASSETS
+    if [[ "$CONTINUE_WITHOUT_ASSETS" != "y" && "$CONTINUE_WITHOUT_ASSETS" != "Y" ]]; then
+        echo "Installation aborted."
+        exit 1
+    fi
+fi
+
 # Prompt for the songs path
 read -p "Enter the absolute path for the songs directory: " SONGS_PATH
 
