@@ -54,7 +54,15 @@ fi
 
 # Permanently set the JUKEBOX_SONGS_PATH environment variable
 echo "Setting JUKEBOX_SONGS_PATH environment variable..."
-echo "export JUKEBOX_SONGS_PATH=$SONGS_PATH" >> /etc/environment
+
+# Check if already set in /etc/environment
+if grep -q "JUKEBOX_SONGS_PATH" /etc/environment; then
+    # Replace the existing line
+    sed -i "s|JUKEBOX_SONGS_PATH=.*|JUKEBOX_SONGS_PATH=$SONGS_PATH|" /etc/environment
+else
+    # Append the line to the file
+    echo "export JUKEBOX_SONGS_PATH=$SONGS_PATH" >> /etc/environment
+fi
 
 # Reload environment variables
 source /etc/environment
