@@ -42,6 +42,7 @@ from pathlib import Path
 ################################################################
 
 JUKEBOX_SONGS_PATH = None
+ASSETS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets")
 
 ################################################################
 # Lamps
@@ -154,7 +155,7 @@ def song_path(number):
         str: Path to the song file, or None if no match is found.
     """
     songs_path = Path(JUKEBOX_SONGS_PATH)
-    song_pattern = f"{number}_*.mp3 {number}_*.wav"
+    song_pattern = f"{number}_*.mp3"
     song_files = []
 
     for pattern in song_pattern.split():
@@ -290,7 +291,7 @@ def play(number):
     GPIO.output(GPIO_BOT_LAMPS, LAMP_ON)
 
     play_load_sample_thread = threading.Thread(
-        target=play_song, args=(JUKEBOX_SONGS_PATH + "/Load.wav",)
+        target=play_song, args=(ASSETS_PATH + "/Load.wav",)
     )
     play_load_sample_thread.start()
 
