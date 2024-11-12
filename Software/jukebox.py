@@ -282,8 +282,6 @@ def await_keypad_input():
             GPIO.output(GPIO_LR_LAMPS, LAMP_ON)
             GPIO.output(GPIO_BOT_LAMPS, LAMP_ON)
 
-            print(f"Button Pressed: {button}")
-
             # Debounce
             time.sleep(KEYPAD_DEBOUNCE_DELAY)
 
@@ -315,7 +313,7 @@ def await_track_selection():
             input += key
         elif key == "R":
             input = ""
-        elif key == "G":
+        elif key == "G" and input:
             return int(input)
 
     return 0
