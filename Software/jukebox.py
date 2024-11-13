@@ -23,9 +23,6 @@ Dependencies:
     - libsox-fmt-mp3: For MP3 format support.
     Pip:
     - RPi.GPIO: For GPIO control.
-    - flask
-    - yt-dlp
-    - spotdl
 
 Contributors:
 - Patrick Pedersen <ctx.xda@gmail.com>
@@ -605,12 +602,6 @@ if __name__ == "__main__":
     # Main mode (renamed to run)
     run_parser = subparsers.add_parser("run", help="Run the Jukebox service.")
     run_parser.add_argument(
-        "-p",
-        "--path",
-        type=str,
-        help="Path to the directory containing the songs (default: JUKEBOX_SONGS_PATH)",
-    )
-    run_parser.add_argument(
         "-l",
         "--log-level",
         type=str,
@@ -641,12 +632,6 @@ if __name__ == "__main__":
     play_parser = subparsers.add_parser("play", help="Play a specific song and quit.")
     play_parser.add_argument("number", type=int, help="The song number to play.")
     play_parser.add_argument(
-        "-p",
-        "--path",
-        type=str,
-        help="Path to the directory containing the songs (default: JUKEBOX_SONGS_PATH)",
-    )
-    play_parser.add_argument(
         "-l",
         "--log-level",
         type=str,
@@ -655,9 +640,6 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
-
-    if args.path:
-        JUKEBOX_SONGS_PATH = args.path
 
     if args.log_level:
         logging.basicConfig(level=args.log_level.upper())
@@ -684,11 +666,14 @@ if __name__ == "__main__":
                 GPIO.cleanup()
 
     elif args.command == "run":
-        if not JUKEBOX_SONGS_PATH or not Path(JUKEBOX_SONGS_PATH).is_dir():
-            logger.error("Invalid path to songs directory.")
+        if not JUKEBOX_SONGS_PATH:
             logger.error(
-                "Please set the JUKEBOX_SONGS_PATH environment variable or provide a valid path with the -p flag."
+                "Please set the JUKEBOX_SONGS_PATH environment variable to the path of the songs directory."
             )
+            exit(1)
+
+        if not Path(JUKEBOX_SONGS_PATH).is_dir():
+            logger.error(f"Invalid path to songs directory: {JUKEBOX_SONGS_PATH}")
             exit(1)
 
         init_gpios()
@@ -704,11 +689,14 @@ if __name__ == "__main__":
             GPIO.cleanup()
 
     elif args.command == "play":
-        if not JUKEBOX_SONGS_PATH or not Path(JUKEBOX_SONGS_PATH).is_dir():
-            print("Error: Invalid path to songs directory.")
-            print(
-                "Please set the JUKEBOX_SONGS_PATH environment variable or provide a valid path with the -p flag."
+        if not JUKEBOX_SONGS_PATH:
+            logger.error(
+                "Please set the JUKEBOX_SONGS_PATH environment variable to the path of the songs directory."
             )
+            exit(1)
+
+        if not Path(JUKEBOX_SONGS_PATH).is_dir():
+            logger.error(f"Invalid path to songs directory: {JUKEBOX_SONGS_PATH}")
             exit(1)
 
         init_gpios()
