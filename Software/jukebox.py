@@ -17,9 +17,15 @@
 Description: Main script to control our Jukebox
 
 Dependencies:
-- bpm-tag: For analyzing song BPM.
-- ffplay: For playing audio files.
-- libsox-fmt-mp3: For MP3 format support.
+    System:
+    - bpm-tag: For analyzing song BPM.
+    - ffplay: For playing audio files.
+    - libsox-fmt-mp3: For MP3 format support.
+    Pip:
+    - RPi.GPIO: For GPIO control.
+    - flask
+    - yt-dlp
+    - spotdl
 
 Contributors:
 - Patrick Pedersen <ctx.xda@gmail.com>
@@ -31,6 +37,7 @@ import glob
 import time
 import signal
 import random
+import logging
 import argparse
 import threading
 import subprocess
@@ -41,8 +48,10 @@ from pathlib import Path
 # Globals
 ################################################################
 
-JUKEBOX_SONGS_PATH = None
+JUKEBOX_SONGS_PATH = os.getenv("JUKEBOX_SONGS_PATH")
 ASSETS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets")
+
+logger = logging.getLogger(__name__)
 
 ################################################################
 # Lamps
@@ -152,6 +161,8 @@ def init_gpios():
     """
     Initialize the GPIO pins for the keypad and lights.
     """
+    logger.info("Initializing GPIO pins...")
+
     GPIO.setmode(GPIO.BCM)
 
     # Set the GPIO pins for the keypad as inputs with pull-down resistors
@@ -162,6 +173,8 @@ def init_gpios():
     GPIO.setup(GPIO_TOP_LAMPS, GPIO.OUT)
     GPIO.setup(GPIO_LR_LAMPS, GPIO.OUT)
     GPIO.setup(GPIO_BOT_LAMPS, GPIO.OUT)
+
+    logger.info("GPIO pins initialized.")
 
 
 def song_path(number):
@@ -182,7 +195,7 @@ def song_path(number):
         song_files.extend(glob.glob(str(songs_path / pattern)))
 
     if len(song_files) > 1:
-        print(
+        logger.warning(
             f"Warning: Found multiple files for number {number}, using the first one."
         )
 
@@ -211,9 +224,11 @@ def bpm_tag(file_path):
     match = re.search(r"([\d.]+) BPM", output)
     bpm = float(match.group(1)) if match else 120
 
-    if not match:
-        print(
-            f"Error: Failed to detect BPM for {file_path}! Using 120 BPM as fallback."
+    if match:
+        logger.info(f"Detected BPM for {file_path}: {bpm}")
+    else:
+        logger.error(
+            f"Failed to detect BPM for {file_path}! Using 120 BPM as fallback."
         )
 
     return bpm
@@ -229,15 +244,16 @@ def play_song(song_path, blocking=True):
     Returns:
         subprocess.Popen: The process object if successful, otherwise None.
     """
+    logger.info(f"Playing: {song_path}")
     try:
         process = subprocess.Popen(["ffplay", "-nodisp", "-autoexit", song_path])
         if blocking:
             process.wait()
         return process
     except FileNotFoundError:
-        print("Error: 'ffplay' not found. Please install it.")
+        logger.error("Error: 'ffplay' not found. Please install it.")
     except Exception as e:
-        print(f"Failed to play {song_path}: {e}")
+        logger.error(f"Failed to play {song_path}: {e}")
     return None
 
 
@@ -266,6 +282,8 @@ def random_lights_thread(bpm, stop_event):
         bpm (float): Beats per minute of the song.
         stop_event (threading.Event): An event to signal when to stop the thread.
     """
+    logger.info("Starting random light patterns thread...")
+
     while not stop_event.is_set():
         pattern = random.choice(ALL_LIGHT_PATTERNS)
         bpm_multiplier = random.choice([1, 2])
@@ -280,6 +298,8 @@ def random_lights_thread(bpm, stop_event):
                 GPIO.output(GPIO_LR_LAMPS, LAMP_ON if frame[1] else LAMP_OFF)
                 GPIO.output(GPIO_BOT_LAMPS, LAMP_ON if frame[2] else LAMP_OFF)
                 time.sleep(delay)
+
+    logger.info("Stopped random light patterns thread...")
 
 
 def read_keypad_input():
@@ -319,6 +339,9 @@ def prompt_keypad_input():
 
         # Check if the state matches a button in the lookup table
         if read and read != previous_read:
+
+            logger.info(f"Keypad input: {read}")
+
             # Turn on lamps
             GPIO.output(GPIO_TOP_LAMPS, LAMP_ON)
             GPIO.output(GPIO_LR_LAMPS, LAMP_ON)
@@ -355,13 +378,24 @@ def prompt_track_selection():
         int: The selected track number.
     """
 
+    logger.info("Waiting for track selection...")
+
     input = ""
     while True:
         key = prompt_keypad_input()
+
         if key in ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]:
             input += key
+            logger.info(f"Input: {input}")
         elif key == "R" or key == None:
             if input:
+                if key == "R":
+                    logger.info(f"Clearing input: {input}")
+                else:
+                    logger.info(
+                        f"No input received for {KEYPAD_TIMEOUT} seconds, clearing input: {input}"
+                    )
+
                 for _ in range(3):
                     # Blink all lights to indicate reset
                     GPIO.output(GPIO_TOP_LAMPS, LAMP_ON)
@@ -378,6 +412,7 @@ def prompt_track_selection():
 
             input = ""
         elif key == "G" and input:
+            logger.info(f"Input confirmed: {input}")
             return int(input)
 
 
@@ -389,16 +424,16 @@ def test_lights(args):
         args (Namespace): Parsed command-line arguments.
     """
     if args.lights_top or args.lights:
-        print("Turning on top lights...")
         GPIO.output(GPIO_TOP_LAMPS, LAMP_ON)
+        logger.info("Top lights on")
 
     if args.lights_lr or args.lights:
-        print("Turning on left-right lights...")
         GPIO.output(GPIO_LR_LAMPS, LAMP_ON)
+        logger.info("Left-right lights on")
 
     if args.lights_bottom or args.lights:
-        print("Turning on bottom lights...")
         GPIO.output(GPIO_BOT_LAMPS, LAMP_ON)
+        logger.info("Bottom lights on")
 
     # Wait for user input
     input("Press any key to turn off lights...")
@@ -408,6 +443,8 @@ def test_lights(args):
 
 
 def play(number):
+    logger.info(f"Searching for song with number {number}...")
+
     spath = song_path(number)
 
     if not spath:
@@ -427,9 +464,13 @@ def play(number):
 
         return False
 
+    logger.info(f"Found song: {spath}")
+
     GPIO.output(GPIO_TOP_LAMPS, LAMP_ON)
     GPIO.output(GPIO_LR_LAMPS, LAMP_ON)
     GPIO.output(GPIO_BOT_LAMPS, LAMP_ON)
+
+    logger.info(f"Playing load sample and analyzing BPM...")
 
     # Play the load sample and analyze the BPM at the same time
     proc = play_song(ASSETS_PATH + "/Load.wav", blocking=False)
@@ -453,6 +494,7 @@ def play(number):
         while proc.poll() is None:
             if read_keypad_input() == "RED":
                 proc.terminate()
+                logger.info("Song stopped by user.")
                 break
     finally:
         # Signal the light thread to stop and wait for it to finish
@@ -462,6 +504,8 @@ def play(number):
     GPIO.output(GPIO_TOP_LAMPS, LAMP_OFF)
     GPIO.output(GPIO_LR_LAMPS, LAMP_OFF)
     GPIO.output(GPIO_BOT_LAMPS, LAMP_OFF)
+
+    logger.info("Done playing song.")
 
     return True
 
@@ -493,6 +537,8 @@ def run():
     Main event loop. Waits for song input, plays the song, and synchronizes lights.
     """
 
+    logger.info("Starting Jukebox service...")
+
     boot_animation()
 
     while True:
@@ -515,8 +561,6 @@ def test_keypad():
 
     # Register signal handler for graceful interruption
     signal.signal(signal.SIGINT, signal_handler)
-
-    print("Testing keypad GPIO states. Press Ctrl+C to exit.")
 
     # Initialize previous state to None
     previous_states = None
@@ -565,7 +609,13 @@ if __name__ == "__main__":
         "--path",
         type=str,
         help="Path to the directory containing the songs (default: JUKEBOX_SONGS_PATH)",
-        default=os.getenv("JUKEBOX_SONGS_PATH"),
+    )
+    run_parser.add_argument(
+        "-l",
+        "--log-level",
+        type=str,
+        default="info",
+        help="Set the logging level (default: info)",
     )
 
     # Test mode
@@ -595,13 +645,24 @@ if __name__ == "__main__":
         "--path",
         type=str,
         help="Path to the directory containing the songs (default: JUKEBOX_SONGS_PATH)",
-        default=os.getenv("JUKEBOX_SONGS_PATH"),
+    )
+    play_parser.add_argument(
+        "-l",
+        "--log-level",
+        type=str,
+        default="info",
+        help="Set the logging level (default: info)",
     )
 
     args = parser.parse_args()
 
-    if args.command != "test":
+    if args.path:
         JUKEBOX_SONGS_PATH = args.path
+
+    if args.log_level:
+        logging.basicConfig(level=args.log_level.upper())
+    else:
+        logging.basicConfig(level="DEBUG")  # Test mode should always be verbose
 
     # Run the appropriate mode
 
@@ -611,11 +672,11 @@ if __name__ == "__main__":
 
         if args.keypad:
             test_keypad()
-        else:
+        elif args.lights or args.lights_top or args.lights_lr or args.lights_bottom:
             try:
                 test_lights(args)
             except KeyboardInterrupt:
-                print("\nTest mode interrupted. Cleaning up GPIO...")
+                pass
             finally:
                 GPIO.output(GPIO_TOP_LAMPS, LAMP_OFF)
                 GPIO.output(GPIO_LR_LAMPS, LAMP_OFF)
@@ -624,8 +685,8 @@ if __name__ == "__main__":
 
     elif args.command == "run":
         if not JUKEBOX_SONGS_PATH or not Path(JUKEBOX_SONGS_PATH).is_dir():
-            print("Error: Invalid path to songs directory.")
-            print(
+            logger.error("Invalid path to songs directory.")
+            logger.error(
                 "Please set the JUKEBOX_SONGS_PATH environment variable or provide a valid path with the -p flag."
             )
             exit(1)
@@ -635,7 +696,7 @@ if __name__ == "__main__":
         try:
             run()
         except KeyboardInterrupt:
-            print("\nScript interrupted. Turning off lights and cleaning up GPIO...")
+            pass
         finally:
             GPIO.output(GPIO_TOP_LAMPS, LAMP_OFF)
             GPIO.output(GPIO_LR_LAMPS, LAMP_OFF)
@@ -655,7 +716,7 @@ if __name__ == "__main__":
         try:
             play(args.number)
         except KeyboardInterrupt:
-            print("\nScript interrupted. Turning off lights and cleaning up GPIO...")
+            pass
         finally:
             GPIO.output(GPIO_TOP_LAMPS, LAMP_OFF)
             GPIO.output(GPIO_LR_LAMPS, LAMP_OFF)
