@@ -462,15 +462,34 @@ def play(number):
     return True
 
 
+def boot_animation():
+    # Quick blink to indicate the Jukebox is ready
+    GPIO.output(GPIO_TOP_LAMPS, LAMP_ON)
+    time.sleep(0.25)
+    GPIO.output(GPIO_TOP_LAMPS, LAMP_OFF)
+    GPIO.output(GPIO_LR_LAMPS, LAMP_ON)
+    time.sleep(0.25)
+    GPIO.output(GPIO_LR_LAMPS, LAMP_OFF)
+    GPIO.output(GPIO_BOT_LAMPS, LAMP_ON)
+    time.sleep(0.25)
+    GPIO.output(GPIO_BOT_LAMPS, LAMP_OFF)
+    GPIO.output(GPIO_LR_LAMPS, LAMP_ON)
+    time.sleep(0.25)
+    GPIO.output(GPIO_LR_LAMPS, LAMP_OFF)
+    GPIO.output(GPIO_TOP_LAMPS, LAMP_ON)
+    time.sleep(0.25)
+
+    GPIO.output(GPIO_TOP_LAMPS, LAMP_OFF)
+    GPIO.output(GPIO_LR_LAMPS, LAMP_OFF)
+    GPIO.output(GPIO_BOT_LAMPS, LAMP_OFF)
+
+
 def run():
     """
     Main event loop. Waits for song input, plays the song, and synchronizes lights.
     """
 
-    # Disable all lamps
-    GPIO.output(GPIO_TOP_LAMPS, LAMP_OFF)
-    GPIO.output(GPIO_LR_LAMPS, LAMP_OFF)
-    GPIO.output(GPIO_BOT_LAMPS, LAMP_OFF)
+    boot_animation()
 
     while True:
         number = prompt_track_selection()
