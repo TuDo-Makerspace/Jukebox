@@ -268,14 +268,18 @@ def random_lights_thread(bpm, stop_event):
     """
     while not stop_event.is_set():
         pattern = random.choice(ALL_LIGHT_PATTERNS)
-        delay = max(60 / bpm, 0.1)  # Avoid very long delays for low BPM
-        for frame in pattern:
-            if stop_event.is_set():
-                break
-            GPIO.output(GPIO_TOP_LAMPS, LAMP_ON if frame[0] else LAMP_OFF)
-            GPIO.output(GPIO_LR_LAMPS, LAMP_ON if frame[1] else LAMP_OFF)
-            GPIO.output(GPIO_BOT_LAMPS, LAMP_ON if frame[2] else LAMP_OFF)
-            time.sleep(delay)
+        bpm_multiplier = random.choice([1, 2])
+
+        for _ in range(bpm_multiplier):
+            # Avoid very long delays for low BPM
+            delay = max(60 / (bpm * bpm_multiplier), 0.1)
+            for frame in pattern:
+                if stop_event.is_set():
+                    break
+                GPIO.output(GPIO_TOP_LAMPS, LAMP_ON if frame[0] else LAMP_OFF)
+                GPIO.output(GPIO_LR_LAMPS, LAMP_ON if frame[1] else LAMP_OFF)
+                GPIO.output(GPIO_BOT_LAMPS, LAMP_ON if frame[2] else LAMP_OFF)
+                time.sleep(delay)
 
 
 def read_keypad_input():
