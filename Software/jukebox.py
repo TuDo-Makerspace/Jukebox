@@ -219,19 +219,26 @@ def bpm_tag(file_path):
     return bpm
 
 
-def play_song(song_path):
+def play_song(song_path, blocking=True):
     """
-    Play a song using ffplay.
+    Play a song using ffplay in a subprocess.
 
     Args:
         song_path (str): Path to the song file.
+
+    Returns:
+        subprocess.Popen: The process object if successful, otherwise None.
     """
     try:
-        subprocess.run(["ffplay", "-nodisp", "-autoexit", song_path], check=True)
+        process = subprocess.Popen(["ffplay", "-nodisp", "-autoexit", song_path])
+        if blocking:
+            process.wait()
+        return process
     except FileNotFoundError:
         print("Error: 'ffplay' not found. Please install it.")
-    except subprocess.CalledProcessError:
-        print(f"Failed to play {song_path}")
+    except Exception as e:
+        print(f"Failed to play {song_path}: {e}")
+    return None
 
 
 def show_light_pattern(pattern, bpm):
@@ -251,25 +258,51 @@ def show_light_pattern(pattern, bpm):
         time.sleep(delay)
 
 
-def show_random_light_pattern(bpm):
+def random_lights_thread(bpm, stop_event):
     """
-    Display a random light pattern.
+    Runs the light pattern in a separate thread until the stop_event is set.
 
     Args:
         bpm (float): Beats per minute of the song.
+        stop_event (threading.Event): An event to signal when to stop the thread.
     """
-    pattern = random.choice(ALL_LIGHT_PATTERNS)
-    show_light_pattern(pattern, bpm)
+    while not stop_event.is_set():
+        pattern = random.choice(ALL_LIGHT_PATTERNS)
+        delay = max(60 / bpm, 0.1)  # Avoid very long delays for low BPM
+        for frame in pattern:
+            if stop_event.is_set():
+                break
+            GPIO.output(GPIO_TOP_LAMPS, LAMP_ON if frame[0] else LAMP_OFF)
+            GPIO.output(GPIO_LR_LAMPS, LAMP_ON if frame[1] else LAMP_OFF)
+            GPIO.output(GPIO_BOT_LAMPS, LAMP_ON if frame[2] else LAMP_OFF)
+            time.sleep(delay)
 
 
-def await_keypad_input():
+def read_keypad_input():
     """
-    Wait for and return input from the keypad.
+    Read the current state of the keypad GPIO pins.
 
     Returns:
         str: The button pressed (e.g., "1", "R", "G").
     """
-    previous_state = None
+    current_state = tuple(GPIO.input(pin) for pin in GPIO_KEYPAD_PINS)
+
+    if current_state in KEYPAD_LOOKUP:
+        return KEYPAD_LOOKUP[current_state]
+
+    return None
+
+
+def prompt_keypad_input():
+    """
+    Wait for a button press on the keypad. Once a button is pressed,
+    a visual feedback is given by blinking all lights. The function
+    waits for the button to be released before returning.
+
+    Returns:
+        str: The button pressed (e.g., "1", "R", "G").
+    """
+    previous_read = None
     timeout_in = time.time() + KEYPAD_TIMEOUT
 
     while True:
@@ -278,12 +311,10 @@ def await_keypad_input():
             return None
 
         # Read current states of GPIO pins
-        current_state = tuple(GPIO.input(pin) for pin in GPIO_KEYPAD_PINS)
+        read = read_keypad_input()
 
         # Check if the state matches a button in the lookup table
-        if current_state in KEYPAD_LOOKUP and current_state != previous_state:
-            button = KEYPAD_LOOKUP[current_state]
-
+        if read and read != previous_read:
             # Turn on lamps
             GPIO.output(GPIO_TOP_LAMPS, LAMP_ON)
             GPIO.output(GPIO_LR_LAMPS, LAMP_ON)
@@ -304,31 +335,42 @@ def await_keypad_input():
             GPIO.output(GPIO_LR_LAMPS, LAMP_OFF)
             GPIO.output(GPIO_BOT_LAMPS, LAMP_OFF)
 
-            return button
+            return read
 
-        previous_state = current_state
+        previous_read = read
 
         # Small delay to avoid excessive CPU usage
         time.sleep(0.05)
 
 
-def await_track_selection():
+def prompt_track_selection():
+    """
+    Waits for track selection from the keypad.
+
+    Returns:
+        int: The selected track number.
+    """
+
     input = ""
     while True:
-        key = await_keypad_input()
-        if key in ["1", "2", "3", "4", "5", "6", "7", "8", "9"]:
+        key = prompt_keypad_input()
+        if key in ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]:
             input += key
         elif key == "R" or key == None:
-            # Blink all lights to indicate reset
-            GPIO.output(GPIO_TOP_LAMPS, LAMP_ON)
-            GPIO.output(GPIO_LR_LAMPS, LAMP_ON)
-            GPIO.output(GPIO_BOT_LAMPS, LAMP_ON)
+            if input:
+                for _ in range(3):
+                    # Blink all lights to indicate reset
+                    GPIO.output(GPIO_TOP_LAMPS, LAMP_ON)
+                    GPIO.output(GPIO_LR_LAMPS, LAMP_ON)
+                    GPIO.output(GPIO_BOT_LAMPS, LAMP_ON)
 
-            time.sleep(0.25)
+                    time.sleep(0.15)
 
-            GPIO.output(GPIO_TOP_LAMPS, LAMP_OFF)
-            GPIO.output(GPIO_LR_LAMPS, LAMP_OFF)
-            GPIO.output(GPIO_BOT_LAMPS, LAMP_OFF)
+                    GPIO.output(GPIO_TOP_LAMPS, LAMP_OFF)
+                    GPIO.output(GPIO_LR_LAMPS, LAMP_OFF)
+                    GPIO.output(GPIO_BOT_LAMPS, LAMP_OFF)
+
+                    time.sleep(0.15)
 
             input = ""
         elif key == "G" and input:
@@ -372,11 +414,7 @@ def play(number):
         GPIO.output(GPIO_BOT_LAMPS, LAMP_ON)
 
         # Play TrackNotFound.wav
-        try:
-            play_song(ASSETS_PATH + "/TrackNotFound.wav")
-        except:
-            print("Failed to play TrackNotFound.wav")
-            time.sleep(1)
+        play_song(ASSETS_PATH + "/TrackNotFound.wav")
 
         # Turn off all lamps
         GPIO.output(GPIO_TOP_LAMPS, LAMP_OFF)
@@ -389,19 +427,33 @@ def play(number):
     GPIO.output(GPIO_LR_LAMPS, LAMP_ON)
     GPIO.output(GPIO_BOT_LAMPS, LAMP_ON)
 
-    play_load_sample_thread = threading.Thread(
-        target=play_song, args=(ASSETS_PATH + "/Load.wav",)
-    )
-    play_load_sample_thread.start()
-
+    # Play the load sample and analyze the BPM at the same time
+    proc = play_song(ASSETS_PATH + "/Load.wav", blocking=False)
     bpm = bpm_tag(spath)
-    play_load_sample_thread.join()
 
-    play_thread = threading.Thread(target=play_song, args=(spath,))
-    play_thread.start()
+    # Wait for the load sample to finish
+    proc.wait()
 
-    while play_thread.is_alive():
-        show_random_light_pattern(bpm)
+    # Play the song
+    proc = play_song(spath, blocking=False)
+
+    # Thread to display random light patterns
+    stop_event = threading.Event()
+    lights_thread = threading.Thread(
+        target=random_lights_thread, args=(bpm, stop_event)
+    )
+    lights_thread.start()
+
+    # Do the lights and check for red button press (stop)
+    try:
+        while proc.poll() is None:
+            if read_keypad_input() == "RED":
+                proc.terminate()
+                break
+    finally:
+        # Signal the light thread to stop and wait for it to finish
+        stop_event.set()
+        lights_thread.join()
 
     GPIO.output(GPIO_TOP_LAMPS, LAMP_OFF)
     GPIO.output(GPIO_LR_LAMPS, LAMP_OFF)
@@ -414,8 +466,14 @@ def run():
     """
     Main event loop. Waits for song input, plays the song, and synchronizes lights.
     """
+
+    # Disable all lamps
+    GPIO.output(GPIO_TOP_LAMPS, LAMP_OFF)
+    GPIO.output(GPIO_LR_LAMPS, LAMP_OFF)
+    GPIO.output(GPIO_BOT_LAMPS, LAMP_OFF)
+
     while True:
-        number = await_track_selection()
+        number = prompt_track_selection()
         play(number)
 
 
@@ -579,7 +637,6 @@ if __name__ == "__main__":
             GPIO.output(GPIO_TOP_LAMPS, LAMP_OFF)
             GPIO.output(GPIO_LR_LAMPS, LAMP_OFF)
             GPIO.output(GPIO_BOT_LAMPS, LAMP_OFF)
-            GPIO.cleanup()
 
     else:
         parser.print_help()
