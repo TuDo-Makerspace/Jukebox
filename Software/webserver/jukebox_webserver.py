@@ -352,10 +352,11 @@ def remote_yt_dlp_mp3(link, out_dir):
     if result.returncode != 0:
         raise Exception(f"Failed to download audio: {result.stderr}")
 
-    logger.info(f"REMOTE: Downloaded file: {result.stdout.split('\n')[-2]}")
+    file = result.stdout.split("\n")[-2]
+    logger.info(f"REMOTE: Downloaded file: {file}")
 
     # Return downloaded file path
-    return out_dir + "/" + result.stdout.split("\n")[-2]
+    return out_dir + "/" + file
 
 
 def remote_spotdl(link, out_dir):
@@ -378,10 +379,11 @@ def remote_spotdl(link, out_dir):
     if result.returncode != 0:
         raise Exception(f"Failed to download audio: {result.stderr}")
 
-    logger.info(f"REMOTE: Downloaded file: {result.stdout.split('\n')[-2]}")
+    file = result.stdout.split("\n")[-2]
+    logger.info(f"REMOTE: Downloaded file: {file}")
 
     # Return downloaded file path
-    return out_dir + "/" + result.stdout.split("\n")[-2]
+    return out_dir + "/" + file
 
 
 def remote_bpm_tag(file):
