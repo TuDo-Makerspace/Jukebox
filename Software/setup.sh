@@ -61,7 +61,7 @@ if grep -q "JUKEBOX_SONGS_PATH" /etc/environment; then
     sed -i "s|JUKEBOX_SONGS_PATH=.*|JUKEBOX_SONGS_PATH=$SONGS_PATH|" /etc/environment
 else
     # Append the line to the file
-    echo "export JUKEBOX_SONGS_PATH=$SONGS_PATH" >> /etc/environment
+    echo "JUKEBOX_SONGS_PATH=$SONGS_PATH" >> /etc/environment
 fi
 
 # Prompt for remote server settings
@@ -77,19 +77,19 @@ if [[ -n "$DL_SERVER_IP" && -n "$DL_SERVER_SSH_PORT" && -n "$DL_SERVER_USER" ]];
     if grep -q "JUKEBOX_DL_SERVER_IP" /etc/environment; then
         sed -i "s|JUKEBOX_DL_SERVER_IP=.*|JUKEBOX_DL_SERVER_IP=$DL_SERVER_IP|" /etc/environment
     else
-        echo "export JUKEBOX_DL_SERVER_IP=$DL_SERVER_IP" >> /etc/environment
+        echo "JUKEBOX_DL_SERVER_IP=$DL_SERVER_IP" >> /etc/environment
     fi
 
     if grep -q "JUKEBOX_DL_SERVER_SSH_PORT" /etc/environment; then
         sed -i "s|JUKEBOX_DL_SERVER_SSH_PORT=.*|JUKEBOX_DL_SERVER_SSH_PORT=$DL_SERVER_SSH_PORT|" /etc/environment
     else
-        echo "export JUKEBOX_DL_SERVER_SSH_PORT=$DL_SERVER_SSH_PORT" >> /etc/environment
+        echo "JUKEBOX_DL_SERVER_SSH_PORT=$DL_SERVER_SSH_PORT" >> /etc/environment
     fi
 
     if grep -q "JUKEBOX_DL_SERVER_USER" /etc/environment; then
         sed -i "s|JUKEBOX_DL_SERVER_USER=.*|JUKEBOX_DL_SERVER_USER=$DL_SERVER_USER|" /etc/environment
     else
-        echo "export JUKEBOX_DL_SERVER_USER=$DL_SERVER_USER" >> /etc/environment
+        echo "JUKEBOX_DL_SERVER_USER=$DL_SERVER_USER" >> /etc/environment
     fi
 else
     echo "No remote server settings provided. Downloads will only take place locally."
