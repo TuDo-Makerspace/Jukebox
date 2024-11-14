@@ -435,7 +435,10 @@
             modalTrackNumber.textContent = trackNumber;
 
             if (!isEmpty) {
-                document.getElementById('modalTrackName').textContent = trackName;
+                const MAX_TITLE_LEN = 40; // Maximum length of the string
+                document.getElementById('modalTrackName').textContent =
+                    trackName.length > MAX_TITLE_LEN ? trackName.slice(0, MAX_TITLE_LEN) + "..." : trackName;
+
                 document.getElementById('modalTrackTitleContainer').style.display = 'block';
                 document.getElementById('deleteSection').style.display = 'block'; // Show delete section for uploaded tracks
             } else {
