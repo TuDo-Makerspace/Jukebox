@@ -255,9 +255,7 @@ def remote_mkdir(path):
 
     logger.debug(f"Running command: {command}")
 
-    ssh_command = (
-        f'ssh -p {DL_SERVER_SSH_PORT} {DL_SERVER_USER}@{DL_SERVER_IP} "{command}"'
-    )
+    ssh_command = f'ssh -o StrictHostKeyChecking=no -p {DL_SERVER_SSH_PORT} {DL_SERVER_USER}@{DL_SERVER_IP} "{command}"'
     result = subprocess.run(
         ssh_command, shell=True, capture_output=True, text=True, timeout=REMOTE_TIMEOUT
     )
@@ -280,9 +278,7 @@ def remote_rmdir(path):
 
     logger.debug(f"Running command: {command}")
 
-    ssh_command = (
-        f'ssh -p {DL_SERVER_SSH_PORT} {DL_SERVER_USER}@{DL_SERVER_IP} "{command}"'
-    )
+    ssh_command = f'ssh -o StrictHostKeyChecking=no -p {DL_SERVER_SSH_PORT} {DL_SERVER_USER}@{DL_SERVER_IP} "{command}"'
     result = subprocess.run(
         ssh_command, shell=True, capture_output=True, text=True, timeout=REMOTE_TIMEOUT
     )
@@ -356,9 +352,7 @@ def rm_remote_file(file):
 
     logger.debug(f"Running command: {command}")
 
-    ssh_command = (
-        f'ssh -p {DL_SERVER_SSH_PORT} {DL_SERVER_USER}@{DL_SERVER_IP} "{command}"'
-    )
+    ssh_command = f'ssh -o StrictHostKeyChecking=no -p {DL_SERVER_SSH_PORT} {DL_SERVER_USER}@{DL_SERVER_IP} "{command}"'
     result = subprocess.run(
         ssh_command, shell=True, capture_output=True, text=True, timeout=REMOTE_TIMEOUT
     )
@@ -380,9 +374,7 @@ def rm_remote_dir(dir):
 
     logger.debug(f"Running command: {command}")
 
-    ssh_command = (
-        f'ssh -p {DL_SERVER_SSH_PORT} {DL_SERVER_USER}@{DL_SERVER_IP} "{command}"'
-    )
+    ssh_command = f'ssh -o StrictHostKeyChecking=no -p {DL_SERVER_SSH_PORT} {DL_SERVER_USER}@{DL_SERVER_IP} "{command}"'
     result = subprocess.run(
         ssh_command, shell=True, capture_output=True, text=True, timeout=REMOTE_TIMEOUT
     )
@@ -406,9 +398,7 @@ def remote_yt_dlp_mp3(link, out_dir):
     escaped_out_dir = escape_path(out_dir)
 
     command = f"source ~/venv/bin/activate && cd {escaped_out_dir} && yt-dlp --no-playlist -x --audio-format mp3 {escaped_link} && ls {escaped_out_dir}"
-    ssh_command = (
-        f'ssh -p {DL_SERVER_SSH_PORT} {DL_SERVER_USER}@{DL_SERVER_IP} "{command}"'
-    )
+    ssh_command = f'ssh -o StrictHostKeyChecking=no -p {DL_SERVER_SSH_PORT} {DL_SERVER_USER}@{DL_SERVER_IP} "{command}"'
 
     logger.debug(f"Running command: {ssh_command}")
 
@@ -441,9 +431,7 @@ def remote_spotdl(link, out_dir):
     escaped_out_dir = escape_path(out_dir)
 
     command = f"source ~/venv/bin/activate && cd {escaped_out_dir} && spotdl {escaped_link} && ls {escaped_out_dir}"
-    ssh_command = (
-        f'ssh -p {DL_SERVER_SSH_PORT} {DL_SERVER_USER}@{DL_SERVER_IP} "{command}"'
-    )
+    ssh_command = f'ssh -o StrictHostKeyChecking=no -p {DL_SERVER_SSH_PORT} {DL_SERVER_USER}@{DL_SERVER_IP} "{command}"'
 
     logger.debug(f"Running command: {ssh_command}")
 
@@ -470,9 +458,7 @@ def remote_bpm_tag(file):
 
     logger.debug(f"Running command: {command}")
 
-    ssh_command = (
-        f'ssh -p {DL_SERVER_SSH_PORT} {DL_SERVER_USER}@{DL_SERVER_IP} "{command}"'
-    )
+    ssh_command = f'ssh -o StrictHostKeyChecking=no -p {DL_SERVER_SSH_PORT} {DL_SERVER_USER}@{DL_SERVER_IP} "{command}"'
     result = subprocess.run(
         ssh_command, shell=True, capture_output=True, text=True, timeout=REMOTE_TIMEOUT
     )
