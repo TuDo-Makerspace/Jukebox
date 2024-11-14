@@ -64,32 +64,43 @@ else
     echo "export JUKEBOX_SONGS_PATH=$SONGS_PATH" >> /etc/environment
 fi
 
+# Prompt for remote server settings
+read -p "Enter the download server IP (leave empty for local downloads only): " DL_SERVER_IP
+read -p "Enter the download server SSH port (leave empty for local downloads only): " DL_SERVER_SSH_PORT
+read -p "Enter the download server user (leave empty for local downloads only): " DL_SERVER_USER
+
+# Handle remote server settings
+if [[ -n "$DL_SERVER_IP" && -n "$DL_SERVER_SSH_PORT" && -n "$DL_SERVER_USER" ]]; then
+    echo "Setting remote server environment variables..."
+    
+    # Check if already set in /etc/environment
+    if grep -q "JUKEBOX_DL_SERVER_IP" /etc/environment; then
+        sed -i "s|JUKEBOX_DL_SERVER_IP=.*|JUKEBOX_DL_SERVER_IP=$DL_SERVER_IP|" /etc/environment
+    else
+        echo "export JUKEBOX_DL_SERVER_IP=$DL_SERVER_IP" >> /etc/environment
+    fi
+
+    if grep -q "JUKEBOX_DL_SERVER_SSH_PORT" /etc/environment; then
+        sed -i "s|JUKEBOX_DL_SERVER_SSH_PORT=.*|JUKEBOX_DL_SERVER_SSH_PORT=$DL_SERVER_SSH_PORT|" /etc/environment
+    else
+        echo "export JUKEBOX_DL_SERVER_SSH_PORT=$DL_SERVER_SSH_PORT" >> /etc/environment
+    fi
+
+    if grep -q "JUKEBOX_DL_SERVER_USER" /etc/environment; then
+        sed -i "s|JUKEBOX_DL_SERVER_USER=.*|JUKEBOX_DL_SERVER_USER=$DL_SERVER_USER|" /etc/environment
+    else
+        echo "export JUKEBOX_DL_SERVER_USER=$DL_SERVER_USER" >> /etc/environment
+    fi
+else
+    echo "No remote server settings provided. Downloads will only take place locally."
+    # Remove any previously set remote server variables
+    sed -i "/JUKEBOX_DL_SERVER_IP/d" /etc/environment
+    sed -i "/JUKEBOX_DL_SERVER_SSH_PORT/d" /etc/environment
+    sed -i "/JUKEBOX_DL_SERVER_USER/d" /etc/environment
+fi
+
 # Reload environment variables
 source /etc/environment
-
-# Obtain the path of jukebox.py and webserver directory
-INSTALLER_PATH="$(dirname "$(realpath "$0")")"
-JUKEBOX_SCRIPT="$INSTALLER_PATH/jukebox.py"
-WEBSERVER_SCRIPT="$INSTALLER_PATH/webserver/jukebox_webserver.py"
-TEMPLATES_DIR="$INSTALLER_PATH/webserver/templates"
-
-if [[ ! -f "$JUKEBOX_SCRIPT" ]]; then
-    echo "Error: jukebox.py not found in the installer's directory ($INSTALLER_PATH)."
-    exit 1
-fi
-
-if [[ ! -f "$WEBSERVER_SCRIPT" ]]; then
-    echo "Error: jukebox_webserver.py not found in the webserver directory ($INSTALLER_PATH/webserver)."
-    exit 1
-fi
-
-if [[ ! -d "$TEMPLATES_DIR" ]]; then
-    echo "Error: templates directory not found in the webserver directory ($INSTALLER_PATH/webserver)."
-    exit 1
-fi
-
-echo "Jukebox script found at $JUKEBOX_SCRIPT"
-echo "Web server script found at $WEBSERVER_SCRIPT"
 
 # Install required system dependencies
 echo "Installing system dependencies with apt..."
@@ -122,7 +133,7 @@ After=network.target
 [Service]
 Type=simple
 EnvironmentFile=/etc/environment
-ExecStart=/usr/bin/python3 $JUKEBOX_SCRIPT run -p \$JUKEBOX_SONGS_PATH
+ExecStart=/usr/bin/python3 $INSTALLER_PATH/jukebox.py run -p \$JUKEBOX_SONGS_PATH
 Restart=always
 RestartSec=5
 KillMode=control-group
@@ -143,7 +154,7 @@ After=network.target
 [Service]
 Type=simple
 EnvironmentFile=/etc/environment
-ExecStart=/usr/bin/python3 $WEBSERVER_SCRIPT
+ExecStart=/usr/bin/python3 $INSTALLER_PATH/webserver/jukebox_webserver.py
 WorkingDirectory=$INSTALLER_PATH/webserver
 Restart=always
 RestartSec=5
