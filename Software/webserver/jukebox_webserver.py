@@ -27,6 +27,7 @@ Contributors:
 """
 
 import os
+import shlex
 import shutil
 import subprocess
 import re
@@ -90,6 +91,14 @@ except Exception as e:
 ################################################################
 # Helper Functions
 ################################################################
+
+
+def escape_path(path):
+    """
+    Escapes special characters in a file path using backslashes.
+    """
+    special_chars = " !\"#$&'()*,:;<=>?@[\\]^`{|}~"
+    return "".join(f"\\{char}" if char in special_chars else char for char in path)
 
 
 def create_temp_dir(base_dir=TMP_DIR):
@@ -218,7 +227,11 @@ def spotdl(link, out_dir):
 
     logger.info(f"SpotDL: Downloading audio from {link}")
 
-    command = ["spotdl", link]
+    escaped_link = escape_path(link)
+    command = ["spotdl", escaped_link]
+
+    logger.debug(f"Running command: {command}")
+
     result = subprocess.run(command, capture_output=True, text=True)
 
     # Go back to the original directory
@@ -238,9 +251,14 @@ def remote_mkdir(path):
     Create a directory on a remote server.
     """
     logger.info(f"REMOTE: Creating directory: {path}")
-    command = f"mkdir -p '{path}'"
+
+    escaped_path = escape_path(path)
+    command = f"mkdir -p {escaped_path}"
+
+    logger.debug(f"Running command: {command}")
+
     ssh_command = (
-        f"ssh -p {DL_SERVER_SSH_PORT} {DL_SERVER_USER}@{DL_SERVER_IP} {command}"
+        f'ssh -p {DL_SERVER_SSH_PORT} {DL_SERVER_USER}@{DL_SERVER_IP} "{command}"'
     )
     result = subprocess.run(
         ssh_command, shell=True, capture_output=True, text=True, timeout=REMOTE_TIMEOUT
@@ -258,9 +276,14 @@ def remote_rmdir(path):
     Remove a directory on a remote server.
     """
     logger.info(f"REMOTE: Removing directory: {path}")
-    command = f"rm -rf '{path}'"
+
+    escaped_path = escape_path(path)
+    command = f"rm -rf {escaped_path}"
+
+    logger.debug(f"Running command: {command}")
+
     ssh_command = (
-        f"ssh -p {DL_SERVER_SSH_PORT} {DL_SERVER_USER}@{DL_SERVER_IP} {command}"
+        f'ssh -p {DL_SERVER_SSH_PORT} {DL_SERVER_USER}@{DL_SERVER_IP} "{command}"'
     )
     result = subprocess.run(
         ssh_command, shell=True, capture_output=True, text=True, timeout=REMOTE_TIMEOUT
@@ -278,9 +301,14 @@ def cp_from_remote(src, dest):
     Copy a file from a remote server to the local machine.
     """
     logger.info(f"REMOTE: Copying file remote ({src}) to local ({dest})")
-    command = (
-        f"scp -P {DL_SERVER_SSH_PORT} {DL_SERVER_USER}@{DL_SERVER_IP}:'{src}' '{dest}'"
-    )
+
+    escaped_src = escape_path(src)
+    escaped_dest = escape_path(dest)
+
+    command = f"scp -P {DL_SERVER_SSH_PORT} {DL_SERVER_USER}@{DL_SERVER_IP}:{escaped_src} {escaped_dest}"
+
+    logger.debug(f"Running command: {command}")
+
     result = subprocess.run(
         command, shell=True, capture_output=True, text=True, timeout=REMOTE_TIMEOUT
     )
@@ -297,9 +325,14 @@ def mv_from_remote(src, dest):
     Move a file from a remote server to the local machine.
     """
     logger.info(f"REMOTE: Moving file remote ({src}) to local ({dest})")
-    command = (
-        f"scp -P {DL_SERVER_SSH_PORT} {DL_SERVER_USER}@{DL_SERVER_IP}:'{src}' '{dest}'"
-    )
+
+    escaped_src = escape_path(src)
+    escaped_dest = escape_path(dest)
+
+    command = f"scp -P {DL_SERVER_SSH_PORT} {DL_SERVER_USER}@{DL_SERVER_IP}:{escaped_src} {escaped_dest}"
+
+    logger.debug(f"Running command: {command}")
+
     result = subprocess.run(
         command, shell=True, capture_output=True, text=True, timeout=REMOTE_TIMEOUT
     )
@@ -318,7 +351,13 @@ def rm_remote_file(file):
     """
     Remove a file on a remote server.
     """
-    command = f"rm '{file}'"
+    logger.info(f"REMOTE: Removing file: {file}")
+
+    escaped_file = escape_path(file)
+    command = f"rm {escaped_file}"
+
+    logger.debug(f"Running command: {command}")
+
     ssh_command = (
         f'ssh -p {DL_SERVER_SSH_PORT} {DL_SERVER_USER}@{DL_SERVER_IP} "{command}"'
     )
@@ -332,6 +371,30 @@ def rm_remote_file(file):
     logger.info(f"REMOTE: File removed: {file}")
 
 
+def rm_remote_dir(dir):
+    """
+    Remove a directory on a remote server.
+    """
+    logger.info(f"REMOTE: Removing directory: {dir}")
+
+    escaped_dir = escape_path(dir)
+    command = f"rm -rf {escaped_dir}"
+
+    logger.debug(f"Running command: {command}")
+
+    ssh_command = (
+        f'ssh -p {DL_SERVER_SSH_PORT} {DL_SERVER_USER}@{DL_SERVER_IP} "{command}"'
+    )
+    result = subprocess.run(
+        ssh_command, shell=True, capture_output=True, text=True, timeout=REMOTE_TIMEOUT
+    )
+
+    if result.returncode != 0:
+        raise Exception(f"Failed to remove directory: {result.stderr}")
+
+    logger.info(f"REMOTE: Directory removed: {dir}")
+
+
 def remote_yt_dlp_mp3(link, out_dir):
     """
     Download an audio file from a YouTube link using yt-dlp on a remote server.
@@ -341,10 +404,16 @@ def remote_yt_dlp_mp3(link, out_dir):
 
     logger.info(f"REMOTE: YoutubeDL: Downloading audio from {link}")
 
-    command = f"source ~/venv/bin/activate && cd {out_dir} && yt-dlp --no-playlist -x --audio-format mp3 '{link}' && ls {out_dir}"
+    escaped_link = escape_path(link)
+    escaped_out_dir = escape_path(out_dir)
+
+    command = f"source ~/venv/bin/activate && cd {escaped_out_dir} && yt-dlp --no-playlist -x --audio-format mp3 {escaped_link} && ls {escaped_out_dir}"
     ssh_command = (
         f'ssh -p {DL_SERVER_SSH_PORT} {DL_SERVER_USER}@{DL_SERVER_IP} "{command}"'
     )
+
+    logger.debug(f"Running command: {ssh_command}")
+
     result = subprocess.run(
         ssh_command, shell=True, capture_output=True, text=True, timeout=REMOTE_TIMEOUT
     )
@@ -370,8 +439,14 @@ def remote_spotdl(link, out_dir):
 
     logger.info(f"REMOTE: SpotDL: Downloading audio from {link}")
 
-    command = f"spotdl '{link}'"
-    ssh_command = f'source ~/venv/bin/activate && cd {out_dir} && ssh -p {DL_SERVER_SSH_PORT} {DL_SERVER_USER}@{DL_SERVER_IP} "{command}" && ls {out_dir}'
+    escaped_link = escape_path(link)
+    escaped_out_dir = escape_path(out_dir)
+
+    command = f"spotdl {escaped_link}"
+    ssh_command = f'source ~/venv/bin/activate && cd {escaped_out_dir} && ssh -p {DL_SERVER_SSH_PORT} {DL_SERVER_USER}@{DL_SERVER_IP} "{command}" && ls {escaped_out_dir}'
+
+    logger.debug(f"Running command: {ssh_command}")
+
     result = subprocess.run(
         ssh_command, shell=True, capture_output=True, text=True, timeout=REMOTE_TIMEOUT
     )
@@ -390,7 +465,11 @@ def remote_bpm_tag(file):
     """
     Run bpm-tag on a file on a remote server.
     """
-    command = f"bpm-tag {file}"
+    escaped_file = escape_path(file)
+    command = f"bpm-tag {escaped_file}"
+
+    logger.debug(f"Running command: {command}")
+
     ssh_command = (
         f'ssh -p {DL_SERVER_SSH_PORT} {DL_SERVER_USER}@{DL_SERVER_IP} "{command}"'
     )
@@ -401,7 +480,7 @@ def remote_bpm_tag(file):
     logger.info(f"REMOTE: Analyzed BPM for {file}")
 
     if result.returncode != 0:
-        raise Exception(f"Failed to analyze BPM: {result.stderr}")
+        logger.warning(f"Failed to analyze BPM for {file}")
 
     logger.info(f"REMOTE: BPM analyzed for {file}")
 
@@ -444,6 +523,9 @@ def upload(track_number):
     """
     logger.info(f"Received upload request for track {track_number}")
 
+    # Get the optional name field
+    custom_name = request.form.get("name", "").strip()
+
     # Create a temporary directory for the download
     temp_dir = create_temp_dir()
 
@@ -481,8 +563,13 @@ def upload(track_number):
             # Remove the WAV file
             os.remove(os.path.splitext(tmp_file_path)[0] + ".wav")
 
-        # Add prefix to the filename
-        new_filename = f"{track_number}_{os.path.basename(tmp_file_path)}"
+        # Add track number and (if provided) custom name to the filename
+        if custom_name:
+            new_filename = f"{track_number}_{custom_name}.mp3"
+        else:
+            # Use the original filename as the track name
+            new_filename = f"{track_number}_{os.path.basename(tmp_file_path)}"
+
         new_file_path = os.path.join(JUKEBOX_SONGS_PATH, new_filename)
 
         # Remove old file for the same track number
@@ -525,7 +612,8 @@ def upload(track_number):
                 remote_mkdir(temp_dir)
                 out = remote_yt_dlp_mp3(ytdlp_link, temp_dir)
                 remote_bpm_tag(out)
-                mv_from_remote(f"{out}", temp_dir)
+                cp_from_remote(f"{out}", temp_dir)
+                rm_remote_dir(temp_dir)
                 bpm_analyzed = True
                 logger.info("Remote download successful.")
             except Exception as e:
@@ -587,10 +675,16 @@ def upload(track_number):
                     os.remove(os.path.join(JUKEBOX_SONGS_PATH, existing_file))
                     logger.info(f"Removed existing track: {existing_file}")
 
-            # Add track number to the filename
-            final_out = os.path.join(
-                JUKEBOX_SONGS_PATH, f"{track_number}_{os.path.basename(out)}"
-            )
+            # Add track number and (if provided) custom name to the filename
+            if custom_name:
+                final_out = os.path.join(
+                    JUKEBOX_SONGS_PATH, f"{track_number}_{custom_name}.mp3"
+                )
+            else:
+                # Use the original filename as the track name
+                final_out = os.path.join(
+                    JUKEBOX_SONGS_PATH, f"{track_number}_{os.path.basename(out)}"
+                )
 
             # Move the file to the JUKEBOX_SONGS_PATH
             shutil.move(
@@ -645,9 +739,10 @@ if __name__ == "__main__":
     if "-d" in sys.argv:
         port = 5000
         debug = True
+        logging.basicConfig(level=logging.DEBUG)
     else:
         port = 80
         debug = False
+        logging.basicConfig(level=logging.INFO)
 
-    logging.basicConfig(level=logging.INFO)
     app.run(host="0.0.0.0", port=port, debug=debug)
