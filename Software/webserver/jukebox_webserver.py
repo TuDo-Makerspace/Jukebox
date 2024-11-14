@@ -46,6 +46,9 @@ logger = logging.getLogger(__name__)
 # Globals
 ################################################################
 
+# Maximum characters displayed for track names
+MAX_TRACK_NAME_LEN = 100
+
 # Path to store songs
 try:
     JUKEBOX_SONGS_PATH = os.getenv("JUKEBOX_SONGS_PATH")
@@ -487,6 +490,11 @@ def index():
             track_number = filename.split("_")[0]
             track_name = filename.split("_", 1)[1]
             track_name = os.path.splitext(track_name)[0]
+
+            # If trackname exceeds the maximum length, truncate it
+            if len(track_name) > MAX_TRACK_NAME_LEN:
+                track_name = track_name[:MAX_TRACK_NAME_LEN] + "..."
+
             tracks[int(track_number)] = track_name
 
     slots = []
@@ -511,6 +519,9 @@ def upload(track_number):
 
     # Get the optional name field
     custom_name = request.form.get("name", "").strip()
+
+    # Strip name to max 100 characters
+    custom_name = custom_name[:MAX_TRACK_NAME_LEN]
 
     # Create a temporary directory for the download
     temp_dir = create_temp_dir()

@@ -123,7 +123,7 @@ GPIO_KEYPAD_PINS = [14, 15, 23, 24]
 KEYPAD_RELEASED = (0, 0, 0, 0)
 
 KEYPAD_LOOKUP = {
-    (0, 1, 0, 1): "0",  # CAUTION: Bad contact
+    (0, 1, 0, 1): "0",
     (1, 0, 1, 1): "1",
     (1, 0, 0, 1): "2",
     (1, 0, 1, 0): "3",
@@ -430,34 +430,8 @@ def prompt_track_selection():
             logger.info(f"Input confirmed: {input}")
             return int(input)
         elif key == "BLUE":
-            logger.info("Random button pressed")
+            logger.info('"Random Select" button pressed')
             return random.choice(reserved_track_numbers())
-
-
-def test_lights(args):
-    """
-    Test specific lights.
-
-    Args:
-        args (Namespace): Parsed command-line arguments.
-    """
-    if args.lights_top or args.lights:
-        GPIO.output(GPIO_TOP_LAMPS, LAMP_ON)
-        logger.info("Top lights on")
-
-    if args.lights_lr or args.lights:
-        GPIO.output(GPIO_LR_LAMPS, LAMP_ON)
-        logger.info("Left-right lights on")
-
-    if args.lights_bottom or args.lights:
-        GPIO.output(GPIO_BOT_LAMPS, LAMP_ON)
-        logger.info("Bottom lights on")
-
-    # Wait for user input
-    input("Press any key to turn off lights...")
-    GPIO.output(GPIO_TOP_LAMPS, LAMP_OFF)
-    GPIO.output(GPIO_LR_LAMPS, LAMP_OFF)
-    GPIO.output(GPIO_BOT_LAMPS, LAMP_OFF)
 
 
 def play(number):
@@ -562,6 +536,32 @@ def run():
     while True:
         number = prompt_track_selection()
         play(number)
+
+
+def test_lights(args):
+    """
+    Test specific lights.
+
+    Args:
+        args (Namespace): Parsed command-line arguments.
+    """
+    if args.lights_top or args.lights:
+        GPIO.output(GPIO_TOP_LAMPS, LAMP_ON)
+        logger.info("Top lights on")
+
+    if args.lights_lr or args.lights:
+        GPIO.output(GPIO_LR_LAMPS, LAMP_ON)
+        logger.info("Left-right lights on")
+
+    if args.lights_bottom or args.lights:
+        GPIO.output(GPIO_BOT_LAMPS, LAMP_ON)
+        logger.info("Bottom lights on")
+
+    # Wait for user input
+    input("Press any key to turn off lights...")
+    GPIO.output(GPIO_TOP_LAMPS, LAMP_OFF)
+    GPIO.output(GPIO_LR_LAMPS, LAMP_OFF)
+    GPIO.output(GPIO_BOT_LAMPS, LAMP_OFF)
 
 
 def test_keypad():
