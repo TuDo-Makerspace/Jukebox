@@ -226,9 +226,7 @@ def spotdl(link, out_dir):
     os.chdir(out_dir)
 
     logger.info(f"SpotDL: Downloading audio from {link}")
-
-    escaped_link = escape_path(link)
-    command = ["spotdl", escaped_link]
+    command = ["spotdl", link]
 
     logger.debug(f"Running command: {command}")
 
@@ -442,8 +440,10 @@ def remote_spotdl(link, out_dir):
     escaped_link = escape_path(link)
     escaped_out_dir = escape_path(out_dir)
 
-    command = f"spotdl {escaped_link}"
-    ssh_command = f'source ~/venv/bin/activate && cd {escaped_out_dir} && ssh -p {DL_SERVER_SSH_PORT} {DL_SERVER_USER}@{DL_SERVER_IP} "{command}" && ls {escaped_out_dir}'
+    command = f"source ~/venv/bin/activate && cd {escaped_out_dir} && spotdl {escaped_link} && ls {escaped_out_dir}"
+    ssh_command = (
+        f'ssh -p {DL_SERVER_SSH_PORT} {DL_SERVER_USER}@{DL_SERVER_IP} "{command}"'
+    )
 
     logger.debug(f"Running command: {ssh_command}")
 
@@ -593,8 +593,8 @@ def upload(track_number):
 
     # Handle YouTube link uploads
     ytdlp_link = request.form.get("ytdlp_link")
-    spotdl_link = request.form.get("spotdl_link")
-    if ytdlp_link or spotdl_link:
+    spotify_link = request.form.get("spotify_link")
+    if ytdlp_link or spotify_link:
 
         bpm_analyzed = False
 
@@ -636,14 +636,14 @@ def upload(track_number):
             # Try remote download first
             errmsg = None
             try:
-                logger.info(f"Received Spotify link: {spotdl_link}")
+                logger.info(f"Received Spotify link: {spotify_link}")
                 if not remote:
                     logger.info("Remote server not configured.")
                     raise Exception("Remote server not configured.")
 
                 remote_rmdir(temp_dir)
                 remote_mkdir(temp_dir)
-                out = remote_spotdl(spotdl_link)
+                out = remote_spotdl(spotify_link, temp_dir)
                 remote_bpm_tag(out)
                 mv_from_remote(f"{out}", temp_dir)
                 bpm_analyzed = True
@@ -652,7 +652,7 @@ def upload(track_number):
                 try:
                     logger.warning(f"Remote download failed: {str(e)}")
                     logger.info("Trying local download...")
-                    out = spotdl(spotdl_link, temp_dir)
+                    out = spotdl(spotify_link, temp_dir)
                     logger.info("Local download successful.")
                 except Exception as e:
                     errmsg = str(e)
