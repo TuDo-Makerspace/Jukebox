@@ -429,7 +429,7 @@ def prompt_track_selection():
         elif key == "G" and input:
             logger.info(f"Input confirmed: {input}")
             return int(input)
-        elif key == "B":
+        elif key == "BLUE":
             logger.info("Random button pressed")
             return random.choice(reserved_track_numbers())
 
