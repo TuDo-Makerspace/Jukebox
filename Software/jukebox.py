@@ -199,6 +199,24 @@ def song_path(number):
     return song_files[0] if song_files else None
 
 
+def reserved_track_numbers():
+    """
+    Get a list of reserved track numbers based on the song files.
+
+    Returns:
+        list: A list of reserved track numbers.
+    """
+    songs_path = Path(JUKEBOX_SONGS_PATH)
+    reserved_numbers = []
+
+    for file in songs_path.glob("*.mp3"):
+        match = re.match(r"(\d+)_", file.stem)
+        if match:
+            reserved_numbers.append(int(match.group(1)))
+
+    return reserved_numbers
+
+
 def bpm_tag(file_path):
     """
     Analyze the BPM of a song using bpm-tag.
@@ -411,6 +429,9 @@ def prompt_track_selection():
         elif key == "G" and input:
             logger.info(f"Input confirmed: {input}")
             return int(input)
+        elif key == "B":
+            logger.info("Random button pressed")
+            return random.choice(reserved_track_numbers())
 
 
 def test_lights(args):
