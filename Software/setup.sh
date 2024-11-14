@@ -133,7 +133,7 @@ After=network.target
 [Service]
 Type=simple
 EnvironmentFile=/etc/environment
-ExecStart=/usr/bin/python3 $INSTALLER_PATH/jukebox.py run -p \$JUKEBOX_SONGS_PATH
+ExecStart=/usr/bin/python3 $INSTALLER_PATH/jukebox.py run
 Restart=always
 RestartSec=5
 KillMode=control-group
