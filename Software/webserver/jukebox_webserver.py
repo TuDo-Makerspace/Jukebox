@@ -640,11 +640,12 @@ def delete(track_number):
 
 
 if __name__ == "__main__":
-    # if "-d" in sys.argv:
-    port = 5000
-    debug = True
-    # else:
-    #     port = 80
-    #     debug = False
+    if "-d" in sys.argv:
+        port = 5000
+        debug = True
+    else:
+        port = 80
+        debug = False
+
     logging.basicConfig(level=logging.INFO)
     app.run(host="0.0.0.0", port=port, debug=debug)
