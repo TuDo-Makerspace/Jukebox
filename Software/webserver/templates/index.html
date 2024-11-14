@@ -375,6 +375,25 @@
         </div>
     </div>
 
+    <!-- Success Modal -->
+    <div class="modal fade" id="successModal" tabindex="-1" aria-labelledby="successModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title text-success" id="successModalLabel">Success</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" style="padding-bottom: 0px">
+                    <p>Don't forget to update the title card!</p>
+                </div>
+                <div class="modal-footer" style="padding-top: 0px">
+                    <button type="button" class="btn btn-success" data-bs-dismiss="modal" id="successButton">Got
+                        it!</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
@@ -385,6 +404,7 @@
         const downloadingModal = new bootstrap.Modal(document.getElementById('downloadingModal'));
         const uploadingModal = new bootstrap.Modal(document.getElementById('uploadingModal'));
         const errorModal = new bootstrap.Modal(document.getElementById('errorModal'));
+        const successModal = new bootstrap.Modal(document.getElementById('successModal'));
 
         const mp3WavForm = document.getElementById('mp3WavForm');
         const ytdlpForm = document.getElementById('ytdlpForm');
@@ -396,6 +416,7 @@
         const ytdlpTrackNumber = document.getElementById('ytdlpTrackNumber');
         const spotifyTrackNumber = document.getElementById('spotifyTrackNumber');
 
+        const successButton = document.getElementById('successButton');
         const deleteButton = document.getElementById('deleteTrackButton');
         const mp3WavUploadButton = document.getElementById('mp3WavUploadButton');
         const ytdlpUploadButton = document.getElementById('ytdlpUploadButton');
@@ -447,6 +468,16 @@
             };
         });
 
+        // Event listener to reload the page when the "Got it!" button is clicked
+        successButton.addEventListener("click", () => {
+            location.reload();
+        });
+
+        // Event listener to reload the page when the modal is dismissed
+        successModal._element.addEventListener("hidden.bs.modal", () => {
+            location.reload();
+        });
+
         // Handle MP3/WAV form submission
         mp3WavForm.addEventListener('submit', async function (event) {
             event.preventDefault();
@@ -459,11 +490,11 @@
             try {
                 const response = await fetch(`/upload/${modalTrackNumber.textContent}`, { method: 'POST', body: formData });
                 const result = await response.json();
+                uploadingModal.hide();
                 if (response.ok) {
-                    location.reload();
+                    successModal.show();
                 } else {
                     document.getElementById('errorModalMessage').textContent = result.error || 'An error occurred.';
-                    uploadingModal.hide();
                     errorModal.show();
                 }
             } catch (error) {
@@ -484,11 +515,11 @@
             try {
                 const response = await fetch(`/upload/${modalTrackNumber.textContent}`, { method: 'POST', body: formData });
                 const result = await response.json();
+                downloadingModal.hide();
                 if (response.ok) {
-                    location.reload();
+                    successModal.show();
                 } else {
                     document.getElementById('errorModalMessage').textContent = result.error || 'An error occurred.';
-                    downloadingModal.hide();
                     errorModal.show();
                 }
             } catch (error) {
@@ -509,11 +540,11 @@
             try {
                 const response = await fetch(`/upload/${modalTrackNumber.textContent}`, { method: 'POST', body: formData });
                 const result = await response.json();
+                downloadingModal.hide();
                 if (response.ok) {
-                    location.reload();
+                    successModal.show();
                 } else {
                     document.getElementById('errorModalMessage').textContent = result.error || 'An error occurred.';
-                    downloadingModal.hide();
                     errorModal.show();
                 }
             } catch (error) {
