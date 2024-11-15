@@ -538,30 +538,24 @@ def idle():
     """
     logger.info("Entering idle mode...")
 
-    prev_key = read_keypad_input()
-
     def key_pressed_check():
         """Checks if a key is pressed and handles lamp blinking for feedback."""
-        nonlocal prev_key
         key = read_keypad_input()
-        if key != prev_key:
-            prev_key = key
-            # Provide visual feedback for key press
-            for _ in range(2):  # Blink twice
+        if key:
+            logger.info(f"Key pressed: {key}")
 
-                GPIO.output(GPIO_TOP_LAMPS, LAMP_ON)
-                GPIO.output(GPIO_LR_LAMPS, LAMP_ON)
-                GPIO.output(GPIO_BOT_LAMPS, LAMP_ON)
+            GPIO.output(GPIO_TOP_LAMPS, LAMP_ON)
+            GPIO.output(GPIO_LR_LAMPS, LAMP_ON)
+            GPIO.output(GPIO_BOT_LAMPS, LAMP_ON)
 
-                time.sleep(KEYPAD_DEBOUNCE_DELAY)
+            time.sleep(KEYPAD_DEBOUNCE_DELAY)
 
-                GPIO.output(GPIO_TOP_LAMPS, LAMP_OFF)
-                GPIO.output(GPIO_LR_LAMPS, LAMP_OFF)
-                GPIO.output(GPIO_BOT_LAMPS, LAMP_OFF)
+            GPIO.output(GPIO_TOP_LAMPS, LAMP_OFF)
+            GPIO.output(GPIO_LR_LAMPS, LAMP_OFF)
+            GPIO.output(GPIO_BOT_LAMPS, LAMP_OFF)
 
-                time.sleep(KEYPAD_DEBOUNCE_DELAY)
-            return key
-        return None
+            time.sleep(KEYPAD_DEBOUNCE_DELAY)
+        return key
 
     while True:
         # Wait for the next animation trigger
@@ -571,6 +565,7 @@ def idle():
         while time.time() < trigger_in:
             k = key_pressed_check()
             if k:
+                logger.info("Exiting idle mode...")
                 return k
 
         # Play light pattern animation
@@ -585,6 +580,7 @@ def idle():
                 while time.time() < frame_delay:
                     k = key_pressed_check()
                     if k:
+                        logger.info("Exiting idle mode...")
                         return k
 
 
