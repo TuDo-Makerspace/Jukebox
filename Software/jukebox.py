@@ -120,12 +120,24 @@ LIGHT_PATTERN_UP_DOWN_UP = [
     [0, 1, 0],
 ]
 
+TETRIS = [
+    [1, 0, 0],
+    [0, 1, 0],
+    [0, 0, 1],
+    [0, 1, 1],
+    [1, 1, 1],
+    [0, 0, 0],
+    [1, 1, 1],
+    [0, 0, 0],
+]
+
 ALL_LIGHT_PATTERNS = [
     LIGHT_PATTERN_BLINK_ALL,
     LIGHT_PATTERN_DOWN_UP,
     LIGHT_PATTERN_UP_DOWN,
     LIGHT_PATTERN_UP_DOWN_UP,
     LIGHT_PATTERN_TB_LR,
+    TETRIS,
 ]
 
 ################################################################
@@ -154,7 +166,7 @@ KEYPAD_LOOKUP = {
     (1, 1, 0, 0): "RED",  # Red button
 }
 
-KEYPAD_DEBOUNCE_DELAY = 0.1  # seconds
+KEYPAD_DEBOUNCE_DELAY = 0.15  # seconds
 
 KEYPAD_TIMEOUT = 5  # seconds
 
@@ -407,11 +419,30 @@ def prompt_track_selection(initial_input=""):
         int: The selected track number.
     """
 
-    logger.info("Waiting for track selection...")
+    logger.info("Entering track selection mode...")
 
-    input = initial_input
+    def clear_animation():
+        for _ in range(3):
+            # Blink all lights to indicate reset
+            GPIO.output(GPIO_TOP_LAMPS, LAMP_ON)
+            GPIO.output(GPIO_LR_LAMPS, LAMP_ON)
+            GPIO.output(GPIO_BOT_LAMPS, LAMP_ON)
+
+            time.sleep(0.15)
+
+            GPIO.output(GPIO_TOP_LAMPS, LAMP_OFF)
+            GPIO.output(GPIO_LR_LAMPS, LAMP_OFF)
+            GPIO.output(GPIO_BOT_LAMPS, LAMP_OFF)
+
+            time.sleep(0.15)
+
+    input = ""
     while True:
-        key = prompt_keypad_input()
+        if initial_input:
+            key = initial_input[0]
+            initial_input = ""
+        else:
+            key = prompt_keypad_input()
 
         # Digit input
         if key in ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]:
@@ -421,22 +452,8 @@ def prompt_track_selection(initial_input=""):
         # Reset input
         elif key == "R" and input:
             logger.info(f"Clearing input: {input}")
-
-            for _ in range(3):
-                # Blink all lights to indicate reset
-                GPIO.output(GPIO_TOP_LAMPS, LAMP_ON)
-                GPIO.output(GPIO_LR_LAMPS, LAMP_ON)
-                GPIO.output(GPIO_BOT_LAMPS, LAMP_ON)
-
-                time.sleep(0.15)
-
-                GPIO.output(GPIO_TOP_LAMPS, LAMP_OFF)
-                GPIO.output(GPIO_LR_LAMPS, LAMP_OFF)
-                GPIO.output(GPIO_BOT_LAMPS, LAMP_OFF)
-
-                time.sleep(0.15)
-
             input = ""
+            clear_animation()
 
         # Confirm input
         elif key == "G" and input:
@@ -451,6 +468,8 @@ def prompt_track_selection(initial_input=""):
         # Timeout
         elif key is None:
             logger.info("Timeout: No input received.")
+            if input:
+                clear_animation()
             return None
 
 
@@ -528,7 +547,7 @@ def play(number):
     return True
 
 
-def idle():
+def idle(start_with_animation=True):
     """
     Idle mode. Plays up-down light pattern at regular intervals.
     Exits when any key on the keypad is pressed.
@@ -537,6 +556,8 @@ def idle():
         Pressed key to exit idle mode.
     """
     logger.info("Entering idle mode...")
+
+    skip = not start_with_animation
 
     def key_pressed_check():
         """Checks if a key is pressed and handles lamp blinking for feedback."""
@@ -558,6 +579,29 @@ def idle():
         return key
 
     while True:
+        if not skip:
+            # Play light pattern animation
+            for pattern in [TETRIS]:
+                for frame in pattern:
+                    GPIO.output(GPIO_TOP_LAMPS, LAMP_ON if frame[0] else LAMP_OFF)
+                    GPIO.output(GPIO_LR_LAMPS, LAMP_ON if frame[1] else LAMP_OFF)
+                    GPIO.output(GPIO_BOT_LAMPS, LAMP_ON if frame[2] else LAMP_OFF)
+
+                    # Delay for the current frame while checking for key presses
+                    frame_delay = time.time() + 0.25
+                    while time.time() < frame_delay:
+                        k = key_pressed_check()
+                        if k:
+                            logger.info("Exiting idle mode...")
+                            return k
+
+            # Turn off lamps
+            GPIO.output(GPIO_TOP_LAMPS, LAMP_OFF)
+            GPIO.output(GPIO_LR_LAMPS, LAMP_OFF)
+            GPIO.output(GPIO_BOT_LAMPS, LAMP_OFF)
+
+        skip = False
+
         # Wait for the next animation trigger
         trigger_in = time.time() + IDLE_ANIMATION_INTERVAL
 
@@ -568,21 +612,6 @@ def idle():
                 logger.info("Exiting idle mode...")
                 return k
 
-        # Play light pattern animation
-        for pattern in [LIGHT_PATTERN_UP_DOWN]:
-            for frame in pattern:
-                GPIO.output(GPIO_TOP_LAMPS, LAMP_ON if frame[0] else LAMP_OFF)
-                GPIO.output(GPIO_LR_LAMPS, LAMP_ON if frame[1] else LAMP_OFF)
-                GPIO.output(GPIO_BOT_LAMPS, LAMP_ON if frame[2] else LAMP_OFF)
-
-                # Delay for the current frame while checking for key presses
-                frame_delay = time.time() + 0.5
-                while time.time() < frame_delay:
-                    k = key_pressed_check()
-                    if k:
-                        logger.info("Exiting idle mode...")
-                        return k
-
 
 def run():
     """
@@ -591,8 +620,11 @@ def run():
 
     logger.info("Starting Jukebox service...")
 
+    boot = True
+
     while True:
-        key = idle()
+        key = idle(boot)
+        boot = False
         number = prompt_track_selection(key)
         if number is not None:
             play(number)
