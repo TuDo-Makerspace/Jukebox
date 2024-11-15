@@ -64,6 +64,27 @@ else
     echo "JUKEBOX_SONGS_PATH=$SONGS_PATH" >> /etc/environment
 fi
 
+# Prompt for the sound board path
+read -p "Enter the absolute path for the sound board directory: " JUKEBOX_SOUNDBOARD_PATH
+
+# Validate the provided path
+if [[ ! -d "$JUKEBOX_SOUNDBOARD_PATH" ]]; then
+    echo "Error: The provided path is not a valid directory."
+    exit 1
+fi
+
+# Permanently set the JUKEBOX_SOUNDBOARD_PATH environment variable
+echo "Setting JUKEBOX_SOUNDBOARD_PATH environment variable..."
+
+# Check if already set in /etc/environment
+if grep -q "JUKEBOX_SOUNDBOARD_PATH" /etc/environment; then
+    # Replace the existing line
+    sed -i "s|JUKEBOX_SOUNDBOARD_PATH=.*|JUKEBOX_SOUNDBOARD_PATH=$JUKEBOX_SOUNDBOARD_PATH|" /etc/environment
+else
+    # Append the line to the file
+    echo "JUKEBOX_SOUNDBOARD_PATH=$JUKEBOX_SOUNDBOARD_PATH" >> /etc/environment
+fi
+
 # Prompt for remote server settings
 read -p "Enter the download server IP (leave empty for local downloads only): " DL_SERVER_IP
 read -p "Enter the download server SSH port (leave empty for local downloads only): " DL_SERVER_SSH_PORT

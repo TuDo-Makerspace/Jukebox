@@ -46,6 +46,7 @@ from pathlib import Path
 ################################################################
 
 JUKEBOX_SONGS_PATH = os.getenv("JUKEBOX_SONGS_PATH")
+JUKEBOX_SOUNDBOARD_PATH = os.getenv("JUKEBOX_SOUNDBOARD_PATH")
 ASSETS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets")
 
 logger = logging.getLogger(__name__)
@@ -223,6 +224,31 @@ def song_path(number):
         )
 
     return song_files[0] if song_files else None
+
+
+def soundboard_sample_path(number):
+    """
+    Get the file path of the soundboard sample based on the input number.
+
+    Args:
+        number (int): The soundboard sample number.
+
+    Returns:
+        str: Path to the soundboard sample file, or None if no match is found.
+    """
+    JUKEBOX_SOUNDBOARD_PATH = Path(JUKEBOX_SOUNDBOARD_PATH)
+    soundboard_pattern = f"{number}_*.wav"
+    soundboard_files = []
+
+    for pattern in soundboard_pattern.split():
+        soundboard_files.extend(glob.glob(str(JUKEBOX_SOUNDBOARD_PATH / pattern)))
+
+    if len(soundboard_files) > 1:
+        logger.warning(
+            f"Warning: Found multiple files for number {number}, using the first one."
+        )
+
+    return soundboard_files[0] if soundboard_files else None
 
 
 def reserved_track_numbers():
@@ -411,68 +437,6 @@ def prompt_keypad_input():
         time.sleep(0.05)
 
 
-def prompt_track_selection(initial_input=""):
-    """
-    Waits for track selection from the keypad.
-
-    Returns:
-        int: The selected track number.
-    """
-
-    logger.info("Entering track selection mode...")
-
-    def clear_animation():
-        for _ in range(3):
-            # Blink all lights to indicate reset
-            GPIO.output(GPIO_TOP_LAMPS, LAMP_ON)
-            GPIO.output(GPIO_LR_LAMPS, LAMP_ON)
-            GPIO.output(GPIO_BOT_LAMPS, LAMP_ON)
-
-            time.sleep(0.15)
-
-            GPIO.output(GPIO_TOP_LAMPS, LAMP_OFF)
-            GPIO.output(GPIO_LR_LAMPS, LAMP_OFF)
-            GPIO.output(GPIO_BOT_LAMPS, LAMP_OFF)
-
-            time.sleep(0.15)
-
-    input = ""
-    while True:
-        if initial_input:
-            key = initial_input[0]
-            initial_input = ""
-        else:
-            key = prompt_keypad_input()
-
-        # Digit input
-        if key in ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]:
-            input += key
-            logger.info(f"Input: {input}")
-
-        # Reset input
-        elif key == "R" and input:
-            logger.info(f"Clearing input: {input}")
-            input = ""
-            clear_animation()
-
-        # Confirm input
-        elif key == "G" and input:
-            logger.info(f"Input confirmed: {input}")
-            return int(input)
-
-        # Random select
-        elif key == "BLUE":
-            logger.info('"Random Select" button pressed')
-            return random.choice(reserved_track_numbers())
-
-        # Timeout
-        elif key is None:
-            logger.info("Timeout: No input received.")
-            if input:
-                clear_animation()
-            return None
-
-
 def play(number):
     """
     Play a song based on the input number.
@@ -613,10 +577,48 @@ def idle(start_with_animation=True):
                 return k
 
 
+def soundboard():
+    """
+    Soundboard mode. Plays sound effects based on keypad input.
+    Exits when the red button is pressed.
+    """
+    logger.info("Entering soundboard mode...")
+
+    while True:
+        key = prompt_keypad_input()
+
+        if key == "YELLOW":
+            logger.info("Exiting soundboard mode...")
+            return
+
+        elif key in ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]:
+            spath = soundboard_sample_path(int(key))
+            if not spath:
+                logger.error(f"No soundboard sample found for number {key}")
+                continue
+
+            play_song(spath)
+
+
 def run():
     """
     Main event loop. Waits for song input, plays the song, and synchronizes lights.
     """
+
+    def clear_animation():
+        for _ in range(3):
+            # Blink all lights to indicate reset
+            GPIO.output(GPIO_TOP_LAMPS, LAMP_ON)
+            GPIO.output(GPIO_LR_LAMPS, LAMP_ON)
+            GPIO.output(GPIO_BOT_LAMPS, LAMP_ON)
+
+            time.sleep(0.15)
+
+            GPIO.output(GPIO_TOP_LAMPS, LAMP_OFF)
+            GPIO.output(GPIO_LR_LAMPS, LAMP_OFF)
+            GPIO.output(GPIO_BOT_LAMPS, LAMP_OFF)
+
+            time.sleep(0.15)
 
     logger.info("Starting Jukebox service...")
 
@@ -625,9 +627,49 @@ def run():
     while True:
         key = idle(boot)
         boot = False
-        number = prompt_track_selection(key)
-        if number is not None:
-            play(number)
+
+        logger.info("Evaluating keypad input...")
+
+        input = ""
+
+        while True:
+            # Digit input
+            if key in ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]:
+                input += key
+                logger.info(f"Input: {input}")
+
+            # Reset input
+            elif key == "R" and input:
+                logger.info(f"Clearing input: {input}")
+                input = ""
+                clear_animation()
+
+            # Confirm input
+            elif key == "G" and input:
+                logger.info(f"Input confirmed: {input}")
+                play(int(input))
+                break
+
+            # Random select
+            elif key == "BLUE":
+                logger.info('"Random Select" button pressed')
+                play(random.choice(reserved_track_numbers()))
+                break
+
+            # Soundboard Mode
+            elif key == "YELLOW":
+                logger.info('"Soundboard Mode" button pressed')
+                soundboard()
+                break
+
+            # Timeout
+            elif key is None:
+                logger.info("Timeout: No input received.")
+                if input:
+                    clear_animation()
+                return None
+
+            key = prompt_keypad_input()
 
 
 def test_lights(args):
