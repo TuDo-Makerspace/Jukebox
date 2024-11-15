@@ -50,6 +50,8 @@ ASSETS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets")
 
 logger = logging.getLogger(__name__)
 
+IDLE_ANIMATION_INTERVAL = 30  # seconds
+
 ################################################################
 # Lamps
 ################################################################
@@ -74,7 +76,7 @@ LIGHT_PATTERN_BLINK_ALL = [
     [0, 0, 0],
 ]
 
-LIGHT_PATTERN_DOWN_UP = [
+LIGHT_PATTERN_UP_DOWN = [
     [1, 0, 0],
     [0, 1, 0],
     [0, 0, 1],
@@ -85,15 +87,15 @@ LIGHT_PATTERN_DOWN_UP = [
     [0, 1, 0],
 ]
 
-LIGHT_PATTERN_UP_DOWN = [
-    [0, 1, 0],
-    [1, 0, 0],
-    [0, 1, 0],
+LIGHT_PATTERN_DOWN_UP = [
     [0, 0, 1],
     [0, 1, 0],
     [1, 0, 0],
     [0, 1, 0],
     [0, 0, 1],
+    [0, 1, 0],
+    [1, 0, 0],
+    [0, 1, 0],
 ]
 
 LIGHT_PATTERN_TB_LR = [
@@ -107,10 +109,22 @@ LIGHT_PATTERN_TB_LR = [
     [0, 1, 0],
 ]
 
+LIGHT_PATTERN_UP_DOWN_UP = [
+    [1, 0, 0],
+    [0, 1, 0],
+    [0, 0, 1],
+    [0, 1, 0],
+    [1, 0, 0],
+    [0, 1, 0],
+    [0, 0, 1],
+    [0, 1, 0],
+]
+
 ALL_LIGHT_PATTERNS = [
     LIGHT_PATTERN_BLINK_ALL,
     LIGHT_PATTERN_DOWN_UP,
     LIGHT_PATTERN_UP_DOWN,
+    LIGHT_PATTERN_UP_DOWN_UP,
     LIGHT_PATTERN_TB_LR,
 ]
 
@@ -385,7 +399,7 @@ def prompt_keypad_input():
         time.sleep(0.05)
 
 
-def prompt_track_selection():
+def prompt_track_selection(initial_input=""):
     """
     Waits for track selection from the keypad.
 
@@ -395,46 +409,58 @@ def prompt_track_selection():
 
     logger.info("Waiting for track selection...")
 
-    input = ""
+    input = initial_input
     while True:
         key = prompt_keypad_input()
 
+        # Digit input
         if key in ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]:
             input += key
             logger.info(f"Input: {input}")
-        elif key == "R" or key == None:
-            if input:
-                if key == "R":
-                    logger.info(f"Clearing input: {input}")
-                else:
-                    logger.info(
-                        f"No input received for {KEYPAD_TIMEOUT} seconds, clearing input: {input}"
-                    )
 
-                for _ in range(3):
-                    # Blink all lights to indicate reset
-                    GPIO.output(GPIO_TOP_LAMPS, LAMP_ON)
-                    GPIO.output(GPIO_LR_LAMPS, LAMP_ON)
-                    GPIO.output(GPIO_BOT_LAMPS, LAMP_ON)
+        # Reset input
+        elif key == "R" and input:
+            logger.info(f"Clearing input: {input}")
 
-                    time.sleep(0.15)
+            for _ in range(3):
+                # Blink all lights to indicate reset
+                GPIO.output(GPIO_TOP_LAMPS, LAMP_ON)
+                GPIO.output(GPIO_LR_LAMPS, LAMP_ON)
+                GPIO.output(GPIO_BOT_LAMPS, LAMP_ON)
 
-                    GPIO.output(GPIO_TOP_LAMPS, LAMP_OFF)
-                    GPIO.output(GPIO_LR_LAMPS, LAMP_OFF)
-                    GPIO.output(GPIO_BOT_LAMPS, LAMP_OFF)
+                time.sleep(0.15)
 
-                    time.sleep(0.15)
+                GPIO.output(GPIO_TOP_LAMPS, LAMP_OFF)
+                GPIO.output(GPIO_LR_LAMPS, LAMP_OFF)
+                GPIO.output(GPIO_BOT_LAMPS, LAMP_OFF)
+
+                time.sleep(0.15)
 
             input = ""
+
+        # Confirm input
         elif key == "G" and input:
             logger.info(f"Input confirmed: {input}")
             return int(input)
+
+        # Random select
         elif key == "BLUE":
             logger.info('"Random Select" button pressed')
             return random.choice(reserved_track_numbers())
 
+        # Timeout
+        elif key is None:
+            logger.info("Timeout: No input received.")
+            return None
+
 
 def play(number):
+    """
+    Play a song based on the input number.
+
+    Args:
+        number (int): The song number.
+    """
     logger.info(f"Searching for song with number {number}...")
 
     spath = song_path(number)
@@ -502,26 +528,64 @@ def play(number):
     return True
 
 
-def boot_animation():
-    # Quick blink to indicate the Jukebox is ready
-    GPIO.output(GPIO_TOP_LAMPS, LAMP_ON)
-    time.sleep(0.25)
-    GPIO.output(GPIO_TOP_LAMPS, LAMP_OFF)
-    GPIO.output(GPIO_LR_LAMPS, LAMP_ON)
-    time.sleep(0.25)
-    GPIO.output(GPIO_LR_LAMPS, LAMP_OFF)
-    GPIO.output(GPIO_BOT_LAMPS, LAMP_ON)
-    time.sleep(0.25)
-    GPIO.output(GPIO_BOT_LAMPS, LAMP_OFF)
-    GPIO.output(GPIO_LR_LAMPS, LAMP_ON)
-    time.sleep(0.25)
-    GPIO.output(GPIO_LR_LAMPS, LAMP_OFF)
-    GPIO.output(GPIO_TOP_LAMPS, LAMP_ON)
-    time.sleep(0.25)
+def idle():
+    """
+    Idle mode. Plays up-down light pattern at regular intervals.
+    Exits when any key on the keypad is pressed.
 
-    GPIO.output(GPIO_TOP_LAMPS, LAMP_OFF)
-    GPIO.output(GPIO_LR_LAMPS, LAMP_OFF)
-    GPIO.output(GPIO_BOT_LAMPS, LAMP_OFF)
+    Returns:
+        Pressed key to exit idle mode.
+    """
+    logger.info("Entering idle mode...")
+
+    prev_key = read_keypad_input()
+
+    def key_pressed_check():
+        """Checks if a key is pressed and handles lamp blinking for feedback."""
+        nonlocal prev_key
+        key = read_keypad_input()
+        if key != prev_key:
+            prev_key = key
+            # Provide visual feedback for key press
+            for _ in range(2):  # Blink twice
+
+                GPIO.output(GPIO_TOP_LAMPS, LAMP_ON)
+                GPIO.output(GPIO_LR_LAMPS, LAMP_ON)
+                GPIO.output(GPIO_BOT_LAMPS, LAMP_ON)
+
+                time.sleep(KEYPAD_DEBOUNCE_DELAY)
+
+                GPIO.output(GPIO_TOP_LAMPS, LAMP_OFF)
+                GPIO.output(GPIO_LR_LAMPS, LAMP_OFF)
+                GPIO.output(GPIO_BOT_LAMPS, LAMP_OFF)
+
+                time.sleep(KEYPAD_DEBOUNCE_DELAY)
+            return key
+        return None
+
+    while True:
+        # Wait for the next animation trigger
+        trigger_in = time.time() + IDLE_ANIMATION_INTERVAL
+
+        # Check for key presses during idle interval
+        while time.time() < trigger_in:
+            k = key_pressed_check()
+            if k:
+                return k
+
+        # Play light pattern animation
+        for pattern in [LIGHT_PATTERN_UP_DOWN]:
+            for frame in pattern:
+                GPIO.output(GPIO_TOP_LAMPS, LAMP_ON if frame[0] else LAMP_OFF)
+                GPIO.output(GPIO_LR_LAMPS, LAMP_ON if frame[1] else LAMP_OFF)
+                GPIO.output(GPIO_BOT_LAMPS, LAMP_ON if frame[2] else LAMP_OFF)
+
+                # Delay for the current frame while checking for key presses
+                frame_delay = time.time() + 0.5
+                while time.time() < frame_delay:
+                    k = key_pressed_check()
+                    if k:
+                        return k
 
 
 def run():
@@ -531,11 +595,11 @@ def run():
 
     logger.info("Starting Jukebox service...")
 
-    boot_animation()
-
     while True:
-        number = prompt_track_selection()
-        play(number)
+        key = idle()
+        number = prompt_track_selection(key)
+        if number is not None:
+            play(number)
 
 
 def test_lights(args):
