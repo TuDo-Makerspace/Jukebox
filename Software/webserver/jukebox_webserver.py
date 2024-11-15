@@ -501,7 +501,7 @@ def index():
             tracks[int(track_number)] = track_name
 
     slots = []
-    for i in range(0, 999):
+    for i in range(0, MAX_TRACK_NUMBER + 1):
         slots.append(
             {
                 "number": i,
