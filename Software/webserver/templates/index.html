@@ -177,8 +177,8 @@
         <!-- Search Bar -->
         <div class="d-flex justify-content-center mb-4">
             <div class="input-group" style="max-width: 400px;">
-                <input type="number" class="form-control" id="trackSearch" placeholder="Enter track number (1-400)"
-                    min="1" max="400">
+                <input type="number" class="form-control" id="trackSearch" placeholder="Enter track number (0-999)"
+                    min="0" max="999">
                 <button class="btn btn-primary" id="searchButton">Select</button>
             </div>
         </div>
@@ -566,8 +566,8 @@
 
             // Validate track number input
             const trackNumber = parseInt(trackSearch, 10);
-            if (isNaN(trackNumber) || trackNumber < 1 || trackNumber > 400) {
-                document.getElementById('errorModalMessage').textContent = 'Please enter a valid track number between 1 and 400.';
+            if (isNaN(trackNumber) || trackNumber < 0 || trackNumber > 999) {
+                document.getElementById('errorModalMessage').textContent = 'Please enter a valid track number between 0 and 999.';
                 errorModal.show();
                 return;
             }

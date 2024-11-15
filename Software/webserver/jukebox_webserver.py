@@ -49,6 +49,9 @@ logger = logging.getLogger(__name__)
 # Maximum characters displayed for track names
 MAX_TRACK_NAME_LEN = 100
 
+# Max track number
+MAX_TRACK_NUMBER = 999
+
 # Path to store songs
 try:
     JUKEBOX_SONGS_PATH = os.getenv("JUKEBOX_SONGS_PATH")
@@ -498,7 +501,7 @@ def index():
             tracks[int(track_number)] = track_name
 
     slots = []
-    for i in range(1, 401):
+    for i in range(0, 999):
         slots.append(
             {
                 "number": i,
@@ -516,6 +519,10 @@ def upload(track_number):
     Handle file upload or YouTube link for a specific track.
     """
     logger.info(f"Received upload request for track {track_number}")
+
+    if track_number < 0 or track_number > 999:
+        logger.error("Track number out of range.")
+        return jsonify({"error": " Track number out of range."}), 400
 
     # Get the optional name field
     custom_name = request.form.get("name", "").strip()
