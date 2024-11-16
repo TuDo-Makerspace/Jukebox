@@ -60,6 +60,14 @@ except:
     print("ERROR: JUKEBOX_SONGS_PATH not set.")
     exit(1)
 
+# Path to store soundboard samples
+try:
+    JUKEBOX_SAMPLES_PATH = os.getenv("JUKEBOX_SOUNDBOARD_PATH")
+    os.makedirs(JUKEBOX_SAMPLES_PATH, exist_ok=True)
+except:
+    print("ERROR: JUKEBOX_SOUNDBOARD_PATH not set.")
+    exit(1)
+
 # Temporary directory for Downloads
 # Uploads/Downloads are stored in unique directories under this path
 # This is to:
@@ -79,6 +87,9 @@ REMOTE_TIMEOUT = 60  # seconds
 
 # Maximum duration of local downloads
 LOCAL_DL_TIMEOUT = 60  # seconds
+
+# Maximum Soundboard Sample Size
+MAX_SAMPLE_SIZE = 30 * 1024 * 1024  # 30 MB
 
 # Server (Ensure ssh keys are setup for passwordless login)
 try:
@@ -157,6 +168,21 @@ def wav_to_mp3(file_path):
     return result
 
 
+def mp3_to_wav(file_path):
+    """
+    Convert a MP3 file to WAV using ffmpeg.
+    """
+    wav_file = os.path.splitext(file_path)[0] + ".wav"
+    result = subprocess.run(
+        ["ffmpeg", "-i", file_path, wav_file],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+
+    return result
+
+
 def is_yt_link(link):
     return re.match(r"^(http(s)?:\/\/)?((w){3}.)?youtu(be|.be)?(\.com)?\/.+", link)
 
@@ -167,7 +193,7 @@ def is_yt_video(link):
     )
 
 
-def yt_dlp_mp3(link, out_dir):
+def yt_dlp(link, out_dir, format="mp3"):
     """
     Download an audio file from a YouTube link using yt-dlp.
     """
@@ -181,7 +207,7 @@ def yt_dlp_mp3(link, out_dir):
         "postprocessors": [
             {
                 "key": "FFmpegExtractAudio",
-                "preferredcodec": "mp3",
+                "preferredcodec": format,
                 "preferredquality": "192",
             }
         ],
@@ -216,7 +242,7 @@ def yt_dlp_mp3(link, out_dir):
     return os.listdir(out_dir)[0]
 
 
-def spotdl(link, out_dir):
+def spotdl(link, out_dir, format="mp3"):
     """
     Download an audio file from a Spotify link using spotdl.
     """
@@ -232,7 +258,7 @@ def spotdl(link, out_dir):
     os.chdir(out_dir)
 
     logger.info(f"SpotDL: Downloading audio from {link}")
-    command = ["spotdl", link]
+    command = ["spotdl", "--format", format, link]
 
     logger.debug(f"Running command: {command}")
 
@@ -391,7 +417,7 @@ def rm_remote_dir(dir):
     logger.info(f"REMOTE: Directory removed: {dir}")
 
 
-def remote_yt_dlp_mp3(link, out_dir):
+def remote_yt_dlp_mp3(link, out_dir, format="mp3"):
     """
     Download an audio file from a YouTube link using yt-dlp on a remote server.
     """
@@ -403,7 +429,7 @@ def remote_yt_dlp_mp3(link, out_dir):
     escaped_link = escape_path(link)
     escaped_out_dir = escape_path(out_dir)
 
-    command = f"source ~/venv/bin/activate && cd {escaped_out_dir} && yt-dlp --no-playlist -x --audio-format mp3 {escaped_link} && ls {escaped_out_dir}"
+    command = f"source ~/venv/bin/activate && cd {escaped_out_dir} && yt-dlp --no-playlist -x --audio-format {format} {escaped_link} && ls {escaped_out_dir}"
     ssh_command = f'ssh -o StrictHostKeyChecking=no -p {DL_SERVER_SSH_PORT} {DL_SERVER_USER}@{DL_SERVER_IP} "{command}"'
 
     logger.debug(f"Running command: {ssh_command}")
@@ -422,7 +448,7 @@ def remote_yt_dlp_mp3(link, out_dir):
     return out_dir + "/" + file
 
 
-def remote_spotdl(link, out_dir):
+def remote_spotdl(link, out_dir, format="mp3"):
     """
     Download an audio file from a Spotify link using spotdl on a remote server.
     """
@@ -436,7 +462,7 @@ def remote_spotdl(link, out_dir):
     escaped_link = escape_path(link)
     escaped_out_dir = escape_path(out_dir)
 
-    command = f"source ~/venv/bin/activate && cd {escaped_out_dir} && spotdl {escaped_link} && ls {escaped_out_dir}"
+    command = f"source ~/venv/bin/activate && cd {escaped_out_dir} && spotdl --format {format} {escaped_link} && ls {escaped_out_dir}"
     ssh_command = f'ssh -o StrictHostKeyChecking=no -p {DL_SERVER_SSH_PORT} {DL_SERVER_USER}@{DL_SERVER_IP} "{command}"'
 
     logger.debug(f"Running command: {ssh_command}")
@@ -511,6 +537,37 @@ def index():
         )
 
     return render_template("index.html", slots=slots)
+
+
+@app.route("/samples")
+def samples():
+    """
+    Serve the page for the samples list (0-9).
+    """
+    samples = {}
+    for filename in os.listdir(JUKEBOX_SAMPLES_PATH):
+        if filename.lower().endswith((".wav")):
+            sample_number = filename.split("_")[0]
+            sample_name = filename.split("_", 1)[1]
+            sample_name = os.path.splitext(sample_name)[0]
+
+            # If sample name exceeds the maximum length, truncate it
+            if len(sample_name) > MAX_TRACK_NAME_LEN:
+                sample_name = sample_name[:MAX_TRACK_NAME_LEN] + "..."
+
+            samples[int(sample_number)] = sample_name
+
+    slots = []
+    for i in range(0, 10):
+        slots.append(
+            {
+                "number": i,
+                "name": samples.get(i, ""),  # Empty string if no sample uploaded
+                "is_empty": i not in samples,
+            }
+        )
+
+    return render_template("samples.html", slots=slots)
 
 
 @app.route("/upload/<int:track_number>", methods=["POST"])
@@ -602,6 +659,7 @@ def upload(track_number):
 
         bpm_analyzed = False
 
+        # YT-DLP link
         if ytdlp_link:
             logger.info(f"Received YouTube link: {ytdlp_link}")
 
@@ -624,7 +682,7 @@ def upload(track_number):
                 logger.warning(f"Remote download failed: {str(e)}")
                 logger.info("Trying local download...")
                 try:
-                    out = yt_dlp_mp3(ytdlp_link, temp_dir)
+                    out = yt_dlp(ytdlp_link, temp_dir)
                     logger.info("Local download successful.")
                 except Exception as e:
                     errmsg = str(e)
@@ -636,6 +694,7 @@ def upload(track_number):
                     400,
                 )
 
+        # Spotify link
         else:
             # Try remote download first
             errmsg = None
@@ -669,7 +728,8 @@ def upload(track_number):
                     400,
                 )
 
-        logger.info(f"Download temporarily saved to {out}")
+        tmp_out = os.path.join(temp_dir, out)
+        logger.info(f"Download temporarily saved to {tmp_out}")
 
         # Move the file to the JUKEBOX_SONGS_PATH and run bpm-tag
         try:
@@ -692,7 +752,7 @@ def upload(track_number):
 
             # Move the file to the JUKEBOX_SONGS_PATH
             shutil.move(
-                os.path.join(temp_dir, out),
+                tmp_out,
                 final_out,
             )
 
@@ -720,6 +780,236 @@ def upload(track_number):
     cleanup_temp_dir(temp_dir)
     logger.error("No file or link provided.")
     return jsonify({"error": "No file or link provided."}), 400
+
+
+@app.route("/upload_sample/<int:sample_number>", methods=["POST"])
+def upload_sample(sample_number):
+    """
+    Handle file upload for a specific sample.
+    """
+    logger.info(f"Received upload request for sample {sample_number}")
+
+    if sample_number < 0 or sample_number > 9:
+        logger.error("Sample number out of range.")
+        return jsonify({"error": " Sample number out of range."}), 400
+
+    # Get the optional name field
+    custom_name = request.form.get("name", "").strip()
+
+    # Strip name to max 100 characters
+    custom_name = custom_name[:MAX_TRACK_NAME_LEN]
+
+    # Create a temporary directory for the download
+    temp_dir = create_temp_dir()
+
+    # Handle file uploads
+    if "file" in request.files and request.files["file"].filename != "":
+        file = request.files["file"]
+
+        logger.info(f"Received file: {file.filename}")
+
+        if not file.filename.lower().endswith((".mp3", ".wav")):
+            cleanup_temp_dir(temp_dir)
+            logger.error("Invalid file type. Only MP3 and WAV are allowed.")
+            return (
+                jsonify({"error": "Invalid file type. Only MP3 and WAV are allowed."}),
+                400,
+            )
+
+        # Save to tmp directory
+        tmp_file_path = os.path.join(temp_dir, file.filename)
+        file.save(tmp_file_path)
+        logger.info(f"File temporarily saved to {tmp_file_path}")
+
+        # If the file is a MP3, convert it to WAV
+        if tmp_file_path.lower().endswith(".mp3"):
+            logger.info("Converting MP3 to WAV")
+            if mp3_to_wav(tmp_file_path).returncode != 0:
+                os.remove(tmp_file_path)
+                cleanup_temp_dir(temp_dir)
+                logger.error("Failed to convert MP3 to WAV.")
+                return jsonify({"error": "Failed to convert MP3 to WAV."}), 500
+
+            # Update the file path to the WAV file
+            tmp_file_path = os.path.splitext(tmp_file_path)[0] + ".wav"
+
+            # Remove the MP3 file
+            os.remove(os.path.splitext(tmp_file_path)[0] + ".mp3")
+
+        # Check if file size exceeds MAX_SAMPLE_SIZE
+        if os.path.getsize(tmp_file_path) > MAX_SAMPLE_SIZE:
+            os.remove(tmp_file_path)
+            cleanup_temp_dir(temp_dir)
+            logger.error(
+                f"File size exceeds limit of {MAX_SAMPLE_SIZE / (1024*1024)}MB"
+            )
+            return (
+                jsonify(
+                    {
+                        "error": f"File size exceeds the limit of {MAX_SAMPLE_SIZE / (1024 * 1024):.2f} MB. Please note that MP3 files are converted to WAV, which may increase their size."
+                    }
+                ),
+                400,
+            )
+
+        # Add sample number and (if provided) custom name to the filename
+        if custom_name:
+            new_filename = f"{sample_number}_{custom_name}.wav"
+        else:
+            # Use the original filename as the sample name
+            new_filename = f"{sample_number}_{os.path.basename(tmp_file_path)}"
+
+        new_file_path = os.path.join(JUKEBOX_SAMPLES_PATH, new_filename)
+
+        # Remove old file for the same sample number
+        for existing_file in os.listdir(JUKEBOX_SAMPLES_PATH):
+            if existing_file.startswith(f"{sample_number}_"):
+                os.remove(os.path.join(JUKEBOX_SAMPLES_PATH, existing_file))
+                logger.info(f"Removed existing sample: {existing_file}")
+
+        # Move the file to the JUKEBOX_SAMPLES_PATH
+        shutil.move(tmp_file_path, new_file_path)
+        logger.info(f"File moved to {new_file_path}")
+
+        cleanup_temp_dir(temp_dir)
+        logger.info("File uploaded successfully!")
+        return jsonify({"success": "File uploaded successfully!"}), 200
+
+    # Handle YouTube link uploads
+    ytdlp_link = request.form.get("ytdlp_link")
+    spotify_link = request.form.get("spotify_link")
+    if ytdlp_link or spotify_link:
+
+        # YT-DLP link
+        if ytdlp_link:
+            logger.info(f"Received YouTube link: {ytdlp_link}")
+
+            # Try remote download first
+            errmsg = None
+            try:
+                logger.info("Trying remote download...")
+                if not remote:
+                    raise Exception("Remote server not configured.")
+
+                remote_rmdir(temp_dir)
+                remote_mkdir(temp_dir)
+                out = remote_yt_dlp_mp3(ytdlp_link, temp_dir, format="wav")
+                remote_bpm_tag(out)
+                cp_from_remote(f"{out}", temp_dir)
+                rm_remote_dir(temp_dir)
+                logger.info("Remote download successful.")
+            except Exception as e:
+                logger.warning(f"Remote download failed: {str(e)}")
+                logger.info("Trying local download...")
+                try:
+                    out = yt_dlp(ytdlp_link, temp_dir, format="wav")
+                    logger.info("Local download successful.")
+                except Exception as e:
+                    errmsg = str(e)
+            if errmsg:
+                cleanup_temp_dir(temp_dir)
+                logger.error(f"Failed to download audio: {errmsg}")
+                return (
+                    jsonify({"error": f"Failed to download audio: {errmsg}"}),
+                    400,
+                )
+
+        # Spotify link
+        else:
+            # Try remote download first
+            errmsg = None
+            try:
+                logger.info(f"Received Spotify link: {spotify_link}")
+                if not remote:
+                    logger.info("Remote server not configured.")
+                    raise Exception("Remote server not configured.")
+
+                remote_rmdir(temp_dir)
+                remote_mkdir(temp_dir)
+                out = remote_spotdl(spotify_link, temp_dir, format="wav")
+                remote_bpm_tag(out)
+                mv_from_remote(f"{out}", temp_dir)
+                logger.info("Remote download successful.")
+            except Exception as e:
+                try:
+                    logger.warning(f"Remote download failed: {str(e)}")
+                    logger.info("Trying local download...")
+                    out = spotdl(spotify_link, temp_dir, format="wav")
+                    logger.info("Local download successful.")
+                except Exception as e:
+                    errmsg = str(e)
+
+            if errmsg:
+                cleanup_temp_dir(temp_dir)
+                logger.error(f"Failed to download audio: {errmsg}")
+                return (
+                    jsonify({"error": f"Failed to download audio: {errmsg}"}),
+                    400,
+                )
+
+        tmp_out = os.path.join(temp_dir, out)
+        logger.info(f"Download temporarily saved to {tmp_out}")
+
+        # Check if file size exceeds MAX_SAMPLE_SIZE
+        if os.path.getsize(tmp_out) > MAX_SAMPLE_SIZE:
+            os.remove(tmp_out)
+            cleanup_temp_dir(temp_dir)
+            logger.error(
+                f"File size exceeds limit of {MAX_SAMPLE_SIZE / (1024*1024)}MB"
+            )
+            return (
+                jsonify(
+                    {
+                        "error": f"File size exceeds the limit of {MAX_SAMPLE_SIZE / (1024 * 1024):.2f} MB. Please choose a link for a shorter audio clip."
+                    }
+                ),
+                400,
+            )
+
+        # Move the file to the JUKEBOX_SAMPLES_PATH
+        try:
+            # Remove old file for the same sample number
+            for existing_file in os.listdir(JUKEBOX_SAMPLES_PATH):
+                if existing_file.startswith(f"{sample_number}_"):
+                    os.remove(os.path.join(JUKEBOX_SAMPLES_PATH, existing_file))
+                    logger.info(f"Removed existing sample: {existing_file}")
+
+            # Add sample number and (if provided) custom name to the filename
+            if custom_name:
+                final_out = os.path.join(
+                    JUKEBOX_SAMPLES_PATH, f"{sample_number}_{custom_name}.wav"
+                )
+            else:
+                # Use the original filename as the sample name
+                final_out = os.path.join(
+                    JUKEBOX_SAMPLES_PATH, f"{sample_number}_{os.path.basename(out)}"
+                )
+
+            # Move the file to the JUKEBOX_SAMPLES_PATH
+            shutil.move(
+                tmp_out,
+                final_out,
+            )
+
+            logger.info(f"File moved to {final_out}")
+
+            cleanup_temp_dir(temp_dir)
+            logger.info("Audio downloaded successfully!")
+            return (
+                jsonify({"success": "Audio downloaded successfully!"}),
+                200,
+            )
+        except Exception as e:
+            cleanup_temp_dir(temp_dir)
+            logger.error(f"Download failed: {str(e)}")
+            return (
+                jsonify({"error": f"Download failed: {str(e)}"}),
+                400,
+            )
+
+    cleanup_temp_dir(temp_dir)
+    logger.error("No file provided.")
+    return jsonify({"error": "No file provided."}), 400
 
 
 @app.route("/delete/<int:track_number>", methods=["POST"])

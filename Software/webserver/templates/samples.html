@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jukebox Tracks</title>
+    <title>Jukebox Soundboard Samples</title>
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
@@ -20,9 +20,9 @@
             --button-secondary-background: #6c757d;
             --button-danger-background: #dc3545;
             --button-success-background: #198754;
-            --track-box-border-color: #ddd;
-            --track-box-background-color: #f8f9fa;
-            --track-box-empty-background: #e0e0e0;
+            --sample-box-border-color: #ddd;
+            --sample-box-background-color: #f8f9fa;
+            --sample-box-empty-background: #e0e0e0;
             --hover-shadow-color: rgba(0, 0, 0, 0.2);
         }
 
@@ -37,9 +37,9 @@
                 --button-secondary-background: #4e555b;
                 --button-danger-background: #a94442;
                 --button-success-background: #3c763d;
-                --track-box-border-color: #333;
-                --track-box-background-color: #1e1e1e;
-                --track-box-empty-background: #2c2c2c;
+                --sample-box-border-color: #333;
+                --sample-box-background-color: #1e1e1e;
+                --sample-box-empty-background: #2c2c2c;
                 --hover-shadow-color: rgba(255, 255, 255, 0.2);
             }
 
@@ -53,8 +53,8 @@
             color: var(--text-color);
         }
 
-        .track-box {
-            border: 1px solid var(--track-box-border-color);
+        .sample-box {
+            border: 1px solid var(--sample-box-border-color);
             border-radius: 5px;
             height: 150px;
             display: flex;
@@ -62,16 +62,16 @@
             transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
 
-        .track-number {
-            background-color: var(--track-box-background-color);
+        .sample-number {
+            background-color: var(--sample-box-background-color);
             padding: 5px;
             text-align: center;
             font-weight: bold;
             flex: 0 0 auto;
-            border-bottom: 1px solid var(--track-box-border-color);
+            border-bottom: 1px solid var(--sample-box-border-color);
         }
 
-        .track-name {
+        .sample-name {
             padding: 10px;
             text-align: center;
             word-wrap: break-word;
@@ -86,11 +86,11 @@
             text-align: center;
         }
 
-        .track-box.empty {
-            background-color: var(--track-box-empty-background);
+        .sample-box.empty {
+            background-color: var(--sample-box-empty-background);
         }
 
-        .track-box:hover {
+        .sample-box:hover {
             transform: scale(1.05);
             box-shadow: 0 4px 8px var(--hover-shadow-color);
             cursor: pointer;
@@ -172,26 +172,17 @@
 
 <body>
     <div class="container mt-4">
-        <h1 class="text-center mb-4">Jukebox Tracks</h1>
+        <h1 class="text-center mb-4">Jukebox Soundboard Samples</h1>
 
-        <!-- Search Bar -->
-        <div class="d-flex justify-content-center mb-4">
-            <div class="input-group" style="max-width: 400px;">
-                <input type="number" class="form-control" id="trackSearch" placeholder="Enter track number (0-999)"
-                    min="0" max="999">
-                <button class="btn btn-primary" id="searchButton">Select</button>
-            </div>
-        </div>
-
-        <!-- Track Grid -->
+        <!-- sample Grid -->
         <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-3">
             {% for slot in slots %}
             <div class="col">
-                <div class="track-box {% if slot.is_empty %}empty{% else %}uploaded{% endif %}" data-bs-toggle="modal"
-                    data-bs-target="#uploadModal" data-track-number="{{ slot.number }}"
-                    data-track-name="{{ slot.name }}">
-                    <div class="track-number">Track {{ slot.number }}</div>
-                    <div class="track-name">
+                <div class="sample-box {% if slot.is_empty %}empty{% else %}uploaded{% endif %}" data-bs-toggle="modal"
+                    data-bs-target="#uploadModal" data-sample-number="{{ slot.number }}"
+                    data-sample-name="{{ slot.name }}">
+                    <div class="sample-number">Sample {{ slot.number }}</div>
+                    <div class="sample-name">
                         {% if not slot.is_empty %}
                         {{ slot.name }}
                         {% else %}
@@ -209,13 +200,13 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="uploadModalLabel">Upload or Delete Track</h5>
+                    <h5 class="modal-title" id="uploadModalLabel">Upload or Delete sample</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <p><strong>Track Number:</strong> <span id="modalTrackNumber"></span></p>
-                    <div id="modalTrackTitleContainer">
-                        <p><strong>Track Title:</strong> <span id="modalTrackName"></span></p>
+                    <p><strong>Sample Number:</strong> <span id="modalsampleNumber"></span></p>
+                    <div id="modalsampleTitleContainer">
+                        <p><strong>Sample Title:</strong> <span id="modalsampleName"></span></p>
                     </div>
                     <hr>
                     <h5 style="padding-bottom: 10px; font-weight: bold;">Upload:</h5>
@@ -233,7 +224,7 @@
                     <div id="deleteSection">
                         <h5 style="padding-top: 20px; padding-bottom: 10px; font-weight: bold;">Delete:</h5>
                         <div class="d-flex flex-column gap-2">
-                            <button id="deleteTrackButton" class="btn btn-secondary w-100">Delete Track</button>
+                            <button id="deletesampleButton" class="btn btn-secondary w-100">Delete sample</button>
                         </div>
                     </div>
                 </div>
@@ -254,7 +245,7 @@
                         <div class="mb-3">
                             <label for="name" class="form-label">Name</label>
                             <input class="form-control" type="text" id="name" name="name"
-                                placeholder="Enter a name for the track (Optional)" maxlength="100">
+                                placeholder="Enter a name for the sample (Optional)" maxlength="100">
                         </div>
                         <div class="mb-3">
                             <input class="form-control" type="file" id="file" name="file" accept=".mp3,.wav" required>
@@ -285,7 +276,7 @@
                         <div class="mb-3">
                             <label for="name" class="form-label">Name</label>
                             <input class="form-control" type="text" id="name" name="name"
-                                placeholder="Enter a name for the track (Optional)">
+                                placeholder="Enter a name for the sample (Optional)">
                         </div>
                         <div class="mb-3">
                             <input class="form-control" type="url" id="ytdlp_link" name="ytdlp_link"
@@ -314,7 +305,7 @@
                         <div class="mb-3">
                             <label for="name" class="form-label">Name</label>
                             <input class="form-control" type="text" id="name" name="name"
-                                placeholder="Enter a name for the track (Optional)">
+                                placeholder="Enter a name for the sample (Optional)">
                         </div>
                         <div class="mb-3">
                             <input class="form-control" type="url" id="spotify_link" name="spotify_link"
@@ -377,25 +368,6 @@
         </div>
     </div>
 
-    <!-- Success Modal -->
-    <div class="modal fade" id="successModal" tabindex="-1" aria-labelledby="successModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title text-success" id="successModalLabel">Success</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body" style="padding-bottom: 0px">
-                    <p>Don't forget to update the title card!</p>
-                </div>
-                <div class="modal-footer" style="padding-top: 0px">
-                    <button type="button" class="btn btn-success" data-bs-dismiss="modal" id="successButton">Got
-                        it!</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
@@ -406,20 +378,18 @@
         const downloadingModal = new bootstrap.Modal(document.getElementById('downloadingModal'));
         const uploadingModal = new bootstrap.Modal(document.getElementById('uploadingModal'));
         const errorModal = new bootstrap.Modal(document.getElementById('errorModal'));
-        const successModal = new bootstrap.Modal(document.getElementById('successModal'));
 
         const mp3WavForm = document.getElementById('mp3WavForm');
         const ytdlpForm = document.getElementById('ytdlpForm');
         const spotifyForm = document.getElementById('spotifyForm');
         const deleteForm = document.getElementById('deleteForm');
 
-        const modalTrackNumber = document.getElementById('modalTrackNumber');
-        const mp3WavTrackNumber = document.getElementById('mp3WavTrackNumber');
-        const ytdlpTrackNumber = document.getElementById('ytdlpTrackNumber');
-        const spotifyTrackNumber = document.getElementById('spotifyTrackNumber');
+        const modalsampleNumber = document.getElementById('modalsampleNumber');
+        const mp3WavsampleNumber = document.getElementById('mp3WavsampleNumber');
+        const ytdlpsampleNumber = document.getElementById('ytdlpsampleNumber');
+        const spotifysampleNumber = document.getElementById('spotifysampleNumber');
 
-        const successButton = document.getElementById('successButton');
-        const deleteButton = document.getElementById('deleteTrackButton');
+        const deleteButton = document.getElementById('deletesampleButton');
         const mp3WavUploadButton = document.getElementById('mp3WavUploadButton');
         const ytdlpUploadButton = document.getElementById('ytdlpUploadButton');
         const spotifyUploadButton = document.getElementById('spotifyUploadButton');
@@ -427,40 +397,40 @@
         // Handle when the main upload modal is shown
         uploadModal._element.addEventListener('show.bs.modal', function (event) {
             const button = event.relatedTarget;
-            const trackNumber = button.getAttribute('data-track-number');
-            const trackName = button.getAttribute('data-track-name');
+            const sampleNumber = button.getAttribute('data-sample-number');
+            const sampleName = button.getAttribute('data-sample-name');
             const isEmpty = button.classList.contains('empty');
 
-            // Set the track number and title in the modal
-            modalTrackNumber.textContent = trackNumber;
+            // Set the sample number and title in the modal
+            modalsampleNumber.textContent = sampleNumber;
 
             if (!isEmpty) {
                 const MAX_TITLE_LEN = 40; // Maximum length of the string
-                document.getElementById('modalTrackName').textContent =
-                    trackName.length > MAX_TITLE_LEN ? trackName.slice(0, MAX_TITLE_LEN) + "..." : trackName;
+                document.getElementById('modalsampleName').textContent =
+                    sampleName.length > MAX_TITLE_LEN ? sampleName.slice(0, MAX_TITLE_LEN) + "..." : sampleName;
 
-                document.getElementById('modalTrackTitleContainer').style.display = 'block';
-                document.getElementById('deleteSection').style.display = 'block'; // Show delete section for uploaded tracks
+                document.getElementById('modalsampleTitleContainer').style.display = 'block';
+                document.getElementById('deleteSection').style.display = 'block'; // Show delete section for uploaded samples
             } else {
-                document.getElementById('modalTrackTitleContainer').style.display = 'none';
-                document.getElementById('deleteSection').style.display = 'none'; // Hide delete section for empty tracks
+                document.getElementById('modalsampleTitleContainer').style.display = 'none';
+                document.getElementById('deleteSection').style.display = 'none'; // Hide delete section for empty samples
             }
 
             // Update the delete button action dynamically
             deleteButton.onclick = async () => {
                 try {
-                    const response = await fetch(`/delete/${trackNumber}`, { method: 'POST' });
+                    const response = await fetch(`/delete/${sampleNumber}`, { method: 'POST' });
                     const result = await response.json();
 
                     if (response.ok) {
                         // Close the modal and update the UI
                         uploadModal.hide();
 
-                        // Remove the track box from the grid
-                        const trackBox = document.querySelector(`.track-box[data-track-number="${trackNumber}"]`);
-                        if (trackBox) {
-                            trackBox.classList.add('empty');
-                            trackBox.querySelector('.track-name').textContent = 'Empty Slot';
+                        // Remove the sample box from the grid
+                        const sampleBox = document.querySelector(`.sample-box[data-sample-number="${sampleNumber}"]`);
+                        if (sampleBox) {
+                            sampleBox.classList.add('empty');
+                            sampleBox.querySelector('.sample-name').textContent = 'Empty Slot';
                         }
                     } else {
                         document.getElementById('errorModalMessage').textContent = result.error || 'An error occurred.';
@@ -473,16 +443,6 @@
             };
         });
 
-        // Event listener to reload the page when the "Got it!" button is clicked
-        successButton.addEventListener("click", () => {
-            location.reload();
-        });
-
-        // Event listener to reload the page when the modal is dismissed
-        successModal._element.addEventListener("hidden.bs.modal", () => {
-            location.reload();
-        });
-
         // Handle MP3/WAV form submission
         mp3WavForm.addEventListener('submit', async function (event) {
             event.preventDefault();
@@ -493,11 +453,11 @@
             const formData = new FormData(this);
 
             try {
-                const response = await fetch(`/upload/${modalTrackNumber.textContent}`, { method: 'POST', body: formData });
+                const response = await fetch(`/upload_sample/${modalsampleNumber.textContent}`, { method: 'POST', body: formData });
                 const result = await response.json();
                 uploadingModal.hide();
                 if (response.ok) {
-                    successModal.show();
+                    location.reload();
                 } else {
                     document.getElementById('errorModalMessage').textContent = result.error || 'An error occurred.';
                     errorModal.show();
@@ -518,11 +478,11 @@
 
             const formData = new FormData(this);
             try {
-                const response = await fetch(`/upload/${modalTrackNumber.textContent}`, { method: 'POST', body: formData });
+                const response = await fetch(`/upload_sample/${modalsampleNumber.textContent}`, { method: 'POST', body: formData });
                 const result = await response.json();
                 downloadingModal.hide();
                 if (response.ok) {
-                    successModal.show();
+                    location.reload();
                 } else {
                     document.getElementById('errorModalMessage').textContent = result.error || 'An error occurred.';
                     errorModal.show();
@@ -543,11 +503,11 @@
 
             const formData = new FormData(this);
             try {
-                const response = await fetch(`/upload/${modalTrackNumber.textContent}`, { method: 'POST', body: formData });
+                const response = await fetch(`/upload_sample/${modalsampleNumber.textContent}`, { method: 'POST', body: formData });
                 const result = await response.json();
                 downloadingModal.hide();
                 if (response.ok) {
-                    successModal.show();
+                    location.reload();
                 } else {
                     document.getElementById('errorModalMessage').textContent = result.error || 'An error occurred.';
                     errorModal.show();
@@ -555,37 +515,6 @@
             } catch (error) {
                 document.getElementById('errorModalMessage').textContent = 'An error occurred while processing the request.'
                 downloadingModal.hide();
-                errorModal.show();
-            }
-        });
-
-        // Search functionality
-        const searchButton = document.getElementById("searchButton");
-        searchButton.addEventListener("click", () => {
-            const trackSearch = document.getElementById("trackSearch").value;
-
-            // Validate track number input
-            const trackNumber = parseInt(trackSearch, 10);
-
-            if (trackNumber === 131718) {
-                window.location.href = "/samples";
-                return;
-            }
-
-            if (isNaN(trackNumber) || trackNumber < 0 || trackNumber > 999) {
-                document.getElementById('errorModalMessage').textContent = 'Please enter a valid track number between 0 and 999.';
-                errorModal.show();
-                return;
-            }
-
-            // Find the corresponding track box
-            const targetTrackBox = document.querySelector(`.track-box[data-track-number="${trackNumber}"]`);
-            if (targetTrackBox) {
-                // Trigger a click event to open the main upload modal for the track
-                const event = new Event("click");
-                targetTrackBox.dispatchEvent(event);
-            } else {
-                document.getElementById('errorModalMessage').textContent = 'Track not found!';
                 errorModal.show();
             }
         });

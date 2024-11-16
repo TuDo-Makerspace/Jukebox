@@ -673,6 +673,8 @@ def soundboard():
             play_soundboard_sample(number)
             timeout = time.time() + SOUNDBOARD_TIMEOUT
 
+        # TODO: Support samples for R, G, RED, BLUE
+
 
 def run():
     """
