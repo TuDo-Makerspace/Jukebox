@@ -60,6 +60,9 @@ ASSETS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets")
 # Interval at which the idle animation is triggered
 IDLE_ANIMATION_INTERVAL = 30  # seconds
 
+# Soundboard mode timeout
+SOUNDBOARD_TIMEOUT = 60  # seconds
+
 # Logger
 logger = logging.getLogger(__name__)
 
@@ -594,7 +597,6 @@ def idle(start_with_animation=True):
             set_all_lamps(LAMP_ON)
             time.sleep(KEYPAD_DEBOUNCE_DELAY)
             set_all_lamps(LAMP_OFF)
-            time.sleep(KEYPAD_DEBOUNCE_DELAY)
         return key
 
     while True:
@@ -635,9 +637,25 @@ def soundboard():
     Exits when the red button is pressed.
     """
     logger.info("Entering soundboard mode...")
+    timeout = time.time() + SOUNDBOARD_TIMEOUT
 
     while True:
-        key = prompt_keypad_input()
+        if time.time() > timeout:
+            logger.info("Timeout: No input received.")
+            logger.info("Exiting soundboard mode...")
+            return
+
+        key = read_keypad_input()
+
+        if not key:
+            time.sleep(0.1)  # Small delay to avoid excessive CPU usage
+            continue
+
+        logger.info(f"Key pressed: {key}")
+
+        set_all_lamps(LAMP_ON)
+        time.sleep(KEYPAD_DEBOUNCE_DELAY)
+        set_all_lamps(LAMP_OFF)
 
         if key == "YELLOW":
             logger.info("Exiting soundboard mode...")
@@ -653,6 +671,7 @@ def soundboard():
         elif key in ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]:
             number = int(key)
             play_soundboard_sample(number)
+            timeout = time.time() + SOUNDBOARD_TIMEOUT
 
 
 def run():
