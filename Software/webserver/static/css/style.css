@@ -1,0 +1,170 @@
+:root {
+    --background-color: #ffffff;
+    --text-color: #000000;
+    --modal-background-color: #ffffff;
+    --modal-header-background-color: #f8f9fa;
+    --modal-border-color: #ddd;
+    --input-background-color: #ffffff;
+    --input-border-color: #ccc;
+    --button-primary-background: #0d6efd;
+    --button-secondary-background: #6c757d;
+    --button-danger-background: #dc3545;
+    --button-success-background: #198754;
+    --track-box-border-color: #ddd;
+    --track-box-background-color: #f8f9fa;
+    --track-box-empty-background: #e0e0e0;
+    --sample-box-border-color: #ddd;
+    --sample-box-background-color: #f8f9fa;
+    --sample-box-empty-background: #e0e0e0;
+    --hover-shadow-color: rgba(0, 0, 0, 0.2);
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --background-color: #121212;
+        --text-color: #ffffff;
+        --modal-background-color: #1e1e1e;
+        --modal-header-background-color: #333333;
+        --modal-border-color: #444;
+        --button-primary-background: #375a7f;
+        --button-secondary-background: #4e555b;
+        --button-danger-background: #a94442;
+        --button-success-background: #3c763d;
+        --track-box-border-color: #333;
+        --track-box-background-color: #1e1e1e;
+        --track-box-empty-background: #2c2c2c;
+        --sample-box-border-color: #333;
+        --sample-box-background-color: #1e1e1e;
+        --sample-box-empty-background: #2c2c2c;
+        --hover-shadow-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .form-control {
+        color: #000000 !important;
+    }
+}
+
+body {
+    background-color: var(--background-color);
+    color: var(--text-color);
+}
+
+.track-box,
+.sample-box {
+    border: 1px solid var(--track-box-border-color);
+    border-radius: 5px;
+    height: 150px;
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.track-number,
+.sample-number {
+    background-color: var(--track-box-background-color);
+    padding: 5px;
+    text-align: center;
+    font-weight: bold;
+    flex: 0 0 auto;
+    border-bottom: 1px solid var(--track-box-border-color);
+}
+
+.track-name,
+.sample-name {
+    padding: 10px;
+    text-align: center;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    word-break: break-word;
+    /* Ensures line breaks can happen at characters */
+    white-space: normal;
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+}
+
+.track-box.empty,
+.sample-box.empty {
+    background-color: var(--track-box-empty-background);
+}
+
+.track-box:hover,
+.sample-box:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 8px var(--hover-shadow-color);
+    cursor: pointer;
+}
+
+.upload-btn {
+    margin-left: 4px;
+    margin-right: 4px;
+}
+
+.modal-content {
+    background-color: var(--modal-background-color);
+    border: 1px solid var(--modal-border-color);
+}
+
+.modal-header {
+    background-color: var(--modal-header-background-color);
+    border-bottom: 1px solid var(--modal-border-color);
+    color: var(--text-color);
+}
+
+.modal-footer {
+    border-top: 0px;
+}
+
+.form-control {
+    background-color: var(--input-background-color);
+    border: 1px solid var(--input-border-color);
+    color: var(--text-color);
+}
+
+.form-control:focus {
+    background-color: var(--input-background-color);
+    border-color: var(--button-primary-background);
+    color: var(--text-color);
+}
+
+.btn-primary {
+    background-color: var(--button-primary-background);
+    border-color: var(--button-primary-background);
+    color: white !important;
+}
+
+.btn-secondary {
+    background-color: var(--button-secondary-background);
+    border-color: var(--button-secondary-background);
+    color: white !important;
+}
+
+.btn-danger {
+    background-color: var(--button-danger-background);
+    border-color: var(--button-danger-background);
+    color: white !important;
+}
+
+.btn-success {
+    background-color: var(--button-success-background);
+    border-color: var(--button-success-background);
+    color: white !important;
+}
+
+.input-group .form-control {
+    border-right: none;
+}
+
+.input-group .btn {
+    border-left: none;
+}
+
+.modal-footer .btn {
+    color: var(--text-color);
+}
+
+.spinner-border {
+    color: var(--button-primary-background);
+}
