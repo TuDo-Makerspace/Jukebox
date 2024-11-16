@@ -391,6 +391,18 @@ def play_soundboard_sample(number):
         logger.error(f"Failed to play sample {number}: {e}")
 
 
+def set_all_lamps(state):
+    """
+    Set all lamps to the specified state.
+
+    Args:
+        state (int): The state to set the lamps to (LAMP_ON or LAMP_OFF).
+    """
+    GPIO.output(GPIO_TOP_LAMPS, state)
+    GPIO.output(GPIO_LR_LAMPS, state)
+    GPIO.output(GPIO_BOT_LAMPS, state)
+
+
 def show_light_pattern(pattern, bpm):
     """
     Display a light pattern synchronized with the song's BPM.
@@ -477,9 +489,7 @@ def prompt_keypad_input():
             logger.info(f"Keypad input: {read}")
 
             # Turn on lamps
-            GPIO.output(GPIO_TOP_LAMPS, LAMP_ON)
-            GPIO.output(GPIO_LR_LAMPS, LAMP_ON)
-            GPIO.output(GPIO_BOT_LAMPS, LAMP_ON)
+            set_all_lamps(LAMP_ON)
 
             # Debounce
             time.sleep(KEYPAD_DEBOUNCE_DELAY)
@@ -492,9 +502,7 @@ def prompt_keypad_input():
             time.sleep(KEYPAD_DEBOUNCE_DELAY)
 
             # Turn off lamps
-            GPIO.output(GPIO_TOP_LAMPS, LAMP_OFF)
-            GPIO.output(GPIO_LR_LAMPS, LAMP_OFF)
-            GPIO.output(GPIO_BOT_LAMPS, LAMP_OFF)
+            set_all_lamps(LAMP_OFF)
 
             return read
 
@@ -517,26 +525,16 @@ def play(number):
 
     if not spath:
         print(f"No song found for number {number} in {JUKEBOX_SONGS_PATH}")
-        # Turn on all lamps
-        GPIO.output(GPIO_TOP_LAMPS, LAMP_ON)
-        GPIO.output(GPIO_LR_LAMPS, LAMP_ON)
-        GPIO.output(GPIO_BOT_LAMPS, LAMP_ON)
 
-        # Play TrackNotFound.wav
+        set_all_lamps(LAMP_ON)
         play_song(ASSETS_PATH + "/TrackNotFound.wav")
-
-        # Turn off all lamps
-        GPIO.output(GPIO_TOP_LAMPS, LAMP_OFF)
-        GPIO.output(GPIO_LR_LAMPS, LAMP_OFF)
-        GPIO.output(GPIO_BOT_LAMPS, LAMP_OFF)
+        set_all_lamps(LAMP_OFF)
 
         return False
 
     logger.info(f"Found song: {spath}")
 
-    GPIO.output(GPIO_TOP_LAMPS, LAMP_ON)
-    GPIO.output(GPIO_LR_LAMPS, LAMP_ON)
-    GPIO.output(GPIO_BOT_LAMPS, LAMP_ON)
+    set_all_lamps(LAMP_ON)
 
     logger.info(f"Playing load sample and analyzing BPM...")
 
@@ -569,9 +567,7 @@ def play(number):
         stop_event.set()
         lights_thread.join()
 
-    GPIO.output(GPIO_TOP_LAMPS, LAMP_OFF)
-    GPIO.output(GPIO_LR_LAMPS, LAMP_OFF)
-    GPIO.output(GPIO_BOT_LAMPS, LAMP_OFF)
+    set_all_lamps(LAMP_OFF)
 
     logger.info("Done playing song.")
 
@@ -595,17 +591,9 @@ def idle(start_with_animation=True):
         key = read_keypad_input()
         if key:
             logger.info(f"Key pressed: {key}")
-
-            GPIO.output(GPIO_TOP_LAMPS, LAMP_ON)
-            GPIO.output(GPIO_LR_LAMPS, LAMP_ON)
-            GPIO.output(GPIO_BOT_LAMPS, LAMP_ON)
-
+            set_all_lamps(LAMP_ON)
             time.sleep(KEYPAD_DEBOUNCE_DELAY)
-
-            GPIO.output(GPIO_TOP_LAMPS, LAMP_OFF)
-            GPIO.output(GPIO_LR_LAMPS, LAMP_OFF)
-            GPIO.output(GPIO_BOT_LAMPS, LAMP_OFF)
-
+            set_all_lamps(LAMP_OFF)
             time.sleep(KEYPAD_DEBOUNCE_DELAY)
         return key
 
@@ -626,10 +614,7 @@ def idle(start_with_animation=True):
                             logger.info("Exiting idle mode...")
                             return k
 
-            # Turn off lamps
-            GPIO.output(GPIO_TOP_LAMPS, LAMP_OFF)
-            GPIO.output(GPIO_LR_LAMPS, LAMP_OFF)
-            GPIO.output(GPIO_BOT_LAMPS, LAMP_OFF)
+            set_all_lamps(LAMP_OFF)
 
         skip = False
 
@@ -659,16 +644,9 @@ def soundboard():
             # Flash all lights to indicate exit
             for _ in range(3):
                 # Blink all lights to indicate reset
-                GPIO.output(GPIO_TOP_LAMPS, LAMP_ON)
-                GPIO.output(GPIO_LR_LAMPS, LAMP_ON)
-                GPIO.output(GPIO_BOT_LAMPS, LAMP_ON)
-
+                set_all_lamps(LAMP_ON)
                 time.sleep(0.15)
-
-                GPIO.output(GPIO_TOP_LAMPS, LAMP_OFF)
-                GPIO.output(GPIO_LR_LAMPS, LAMP_OFF)
-                GPIO.output(GPIO_BOT_LAMPS, LAMP_OFF)
-
+                set_all_lamps(LAMP_OFF)
                 time.sleep(0.15)
             return
 
@@ -686,16 +664,9 @@ def run():
     def clear_animation():
         for _ in range(3):
             # Blink all lights to indicate reset
-            GPIO.output(GPIO_TOP_LAMPS, LAMP_ON)
-            GPIO.output(GPIO_LR_LAMPS, LAMP_ON)
-            GPIO.output(GPIO_BOT_LAMPS, LAMP_ON)
-
+            set_all_lamps(LAMP_ON)
             time.sleep(0.15)
-
-            GPIO.output(GPIO_TOP_LAMPS, LAMP_OFF)
-            GPIO.output(GPIO_LR_LAMPS, LAMP_OFF)
-            GPIO.output(GPIO_BOT_LAMPS, LAMP_OFF)
-
+            set_all_lamps(LAMP_OFF)
             time.sleep(0.15)
 
     logger.info("Starting Jukebox service...")
@@ -771,9 +742,7 @@ def test_lights(args):
 
     # Wait for user input
     input("Press any key to turn off lights...")
-    GPIO.output(GPIO_TOP_LAMPS, LAMP_OFF)
-    GPIO.output(GPIO_LR_LAMPS, LAMP_OFF)
-    GPIO.output(GPIO_BOT_LAMPS, LAMP_OFF)
+    set_all_lamps(LAMP_OFF)
 
 
 def test_keypad():
@@ -893,9 +862,7 @@ if __name__ == "__main__":
             except KeyboardInterrupt:
                 pass
             finally:
-                GPIO.output(GPIO_TOP_LAMPS, LAMP_OFF)
-                GPIO.output(GPIO_LR_LAMPS, LAMP_OFF)
-                GPIO.output(GPIO_BOT_LAMPS, LAMP_OFF)
+                set_all_lamps(LAMP_OFF)
                 GPIO.cleanup()
 
     elif args.command == "run":
@@ -916,9 +883,7 @@ if __name__ == "__main__":
         except KeyboardInterrupt:
             pass
         finally:
-            GPIO.output(GPIO_TOP_LAMPS, LAMP_OFF)
-            GPIO.output(GPIO_LR_LAMPS, LAMP_OFF)
-            GPIO.output(GPIO_BOT_LAMPS, LAMP_OFF)
+            set_all_lamps(LAMP_OFF)
             GPIO.cleanup()
 
     elif args.command == "play":
@@ -939,9 +904,7 @@ if __name__ == "__main__":
         except KeyboardInterrupt:
             pass
         finally:
-            GPIO.output(GPIO_TOP_LAMPS, LAMP_OFF)
-            GPIO.output(GPIO_LR_LAMPS, LAMP_OFF)
-            GPIO.output(GPIO_BOT_LAMPS, LAMP_OFF)
+            set_all_lamps(LAMP_OFF)
 
     else:
         parser.print_help()
