@@ -32,6 +32,7 @@ import re
 import os
 import glob
 import time
+import wave
 import signal
 import random
 import logging
@@ -39,19 +40,31 @@ import argparse
 import threading
 import subprocess
 import RPi.GPIO as GPIO
+import numpy as np
 from pathlib import Path
+import sounddevice as sd
 
 ################################################################
 # Globals
 ################################################################
 
+# Songs directory
 JUKEBOX_SONGS_PATH = os.getenv("JUKEBOX_SONGS_PATH")
+
+# Soundboard directory
 JUKEBOX_SOUNDBOARD_PATH = os.getenv("JUKEBOX_SOUNDBOARD_PATH")
+
+# Assets directory
 ASSETS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets")
 
+# Interval at which the idle animation is triggered
+IDLE_ANIMATION_INTERVAL = 30  # seconds
+
+# Logger
 logger = logging.getLogger(__name__)
 
-IDLE_ANIMATION_INTERVAL = 30  # seconds
+# Soudboard samples pre-loaded into memory for faster playback
+soundboard_samples = {}
 
 ################################################################
 # Lamps
@@ -236,12 +249,12 @@ def soundboard_sample_path(number):
     Returns:
         str: Path to the soundboard sample file, or None if no match is found.
     """
-    JUKEBOX_SOUNDBOARD_PATH = Path(JUKEBOX_SOUNDBOARD_PATH)
+    soundboard_path = Path(JUKEBOX_SOUNDBOARD_PATH)
     soundboard_pattern = f"{number}_*.wav"
     soundboard_files = []
 
     for pattern in soundboard_pattern.split():
-        soundboard_files.extend(glob.glob(str(JUKEBOX_SOUNDBOARD_PATH / pattern)))
+        soundboard_files.extend(glob.glob(str(soundboard_path / pattern)))
 
     if len(soundboard_files) > 1:
         logger.warning(
@@ -301,6 +314,40 @@ def bpm_tag(file_path):
     return bpm
 
 
+def preload_soundboard_samples():
+    """
+    Preloads all soundboard samples into memory for faster playback.
+    """
+    global soundboard_samples
+    if not JUKEBOX_SOUNDBOARD_PATH:
+        logger.error("Environment variable JUKEBOX_SOUNDBOARD_PATH is not set.")
+        return
+
+    soundboard_path = Path(JUKEBOX_SOUNDBOARD_PATH)
+    if not soundboard_path.exists():
+        logger.error(f"Soundboard path '{JUKEBOX_SOUNDBOARD_PATH}' does not exist.")
+        return
+
+    for sample_file in soundboard_path.glob("*.wav"):
+        number_match = sample_file.stem.split("_")[0]
+        if number_match.isdigit():
+            number = int(number_match)
+            try:
+                with wave.open(str(sample_file), "rb") as wf:
+                    params = {
+                        "channels": wf.getnchannels(),
+                        "framerate": wf.getframerate(),
+                        "sampwidth": wf.getsampwidth(),
+                    }
+                    frames = wf.readframes(wf.getnframes())
+                    audio_data = np.frombuffer(frames, dtype=np.int16)
+                    soundboard_samples[number] = (params, audio_data)
+                    logger.info(f"Preloaded sample {number} from {sample_file}.")
+            except Exception as e:
+                logger.error(f"Failed to preload sample {sample_file}: {e}")
+    logger.info("All soundboard samples preloaded.")
+
+
 def play_song(song_path, blocking=True):
     """
     Play a song using ffplay in a subprocess.
@@ -322,6 +369,26 @@ def play_song(song_path, blocking=True):
     except Exception as e:
         logger.error(f"Failed to play {song_path}: {e}")
     return None
+
+
+def play_soundboard_sample(number):
+    """
+    Play a soundboard sample based on the input number.
+
+    Args:
+        number (int): The sample number to play.
+    """
+    if number not in soundboard_samples:
+        logger.error(f"No preloaded sample found for number {number}.")
+        return
+
+    params, audio_data = soundboard_samples[number]
+    try:
+        sd.play(
+            audio_data, samplerate=params["framerate"] * 2
+        )  # Not sure why we need to multiply by 2
+    except Exception as e:
+        logger.error(f"Failed to play sample {number}: {e}")
 
 
 def show_light_pattern(pattern, bpm):
@@ -589,21 +656,32 @@ def soundboard():
 
         if key == "YELLOW":
             logger.info("Exiting soundboard mode...")
+            # Flash all lights to indicate exit
+            for _ in range(3):
+                # Blink all lights to indicate reset
+                GPIO.output(GPIO_TOP_LAMPS, LAMP_ON)
+                GPIO.output(GPIO_LR_LAMPS, LAMP_ON)
+                GPIO.output(GPIO_BOT_LAMPS, LAMP_ON)
+
+                time.sleep(0.15)
+
+                GPIO.output(GPIO_TOP_LAMPS, LAMP_OFF)
+                GPIO.output(GPIO_LR_LAMPS, LAMP_OFF)
+                GPIO.output(GPIO_BOT_LAMPS, LAMP_OFF)
+
+                time.sleep(0.15)
             return
 
         elif key in ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]:
-            spath = soundboard_sample_path(int(key))
-            if not spath:
-                logger.error(f"No soundboard sample found for number {key}")
-                continue
-
-            play_song(spath)
+            number = int(key)
+            play_soundboard_sample(number)
 
 
 def run():
     """
     Main event loop. Waits for song input, plays the song, and synchronizes lights.
     """
+    preload_soundboard_samples()
 
     def clear_animation():
         for _ in range(3):
@@ -667,7 +745,7 @@ def run():
                 logger.info("Timeout: No input received.")
                 if input:
                     clear_animation()
-                return None
+                break
 
             key = prompt_keypad_input()
 
