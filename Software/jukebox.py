@@ -876,6 +876,10 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
+    if not args.command:
+        parser.print_help()
+        exit(0)
+
     if args.log_level:
         logging.basicConfig(level=args.log_level.upper())
     else:
