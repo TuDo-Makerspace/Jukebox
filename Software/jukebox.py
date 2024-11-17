@@ -292,30 +292,43 @@ def bpm_tag(file_path):
     return bpm
 
 
-def preload_fallback_sample():
+def preload_assets():
     """
-    Preload the fallback sample into memory for use when no other sample is assigned
-    to a key.
+    Preload all asset audio files into memory for faster access during playback.
+    Includes TrackNotFound.wav, Load.wav, and SampleMissing.wav.
     """
     global soundboard_samples
-    fallback_sample_path = Path(ASSETS_PATH) / "SampleMissing.wav"
+    asset_files = {
+        "TRACK_NOT_FOUND": "TrackNotFound.wav",
+        "LOAD": "Load.wav",
+        "MISSING": "SampleMissing.wav",
+    }
 
-    if fallback_sample_path.exists():
-        try:
-            with wave.open(str(fallback_sample_path), "rb") as wf:
-                params = {
-                    "channels": wf.getnchannels(),
-                    "framerate": wf.getframerate(),
-                    "sampwidth": wf.getsampwidth(),
-                }
-                frames = wf.readframes(wf.getnframes())
-                audio_data = np.frombuffer(frames, dtype=np.int16)
-                soundboard_samples["MISSING"] = (params, audio_data)
-                logger.info(f"Fallback sample preloaded from {fallback_sample_path}.")
-        except Exception as e:
-            logger.error(f"Failed to preload fallback sample: {e}")
-    else:
-        logger.error(f"Fallback sample not found: {fallback_sample_path}")
+    logger.info("Preloading asset samples...")
+
+    for key, filename in asset_files.items():
+        asset_path = Path(ASSETS_PATH) / filename
+
+        if asset_path.exists():
+            try:
+                with wave.open(str(asset_path), "rb") as wf:
+                    params = {
+                        "channels": wf.getnchannels(),
+                        "framerate": wf.getframerate(),
+                        "sampwidth": wf.getsampwidth(),
+                    }
+                    frames = wf.readframes(wf.getnframes())
+                    audio_data = np.frombuffer(frames, dtype=np.int16)
+                    soundboard_samples[key] = (params, audio_data)
+                    logger.info(f"Preloaded asset sample {key} from {asset_path}.")
+            except Exception as e:
+                logger.error(
+                    f"Failed to preload asset sample {key} from {asset_path}: {e}"
+                )
+        else:
+            logger.warning(f"Asset file not found: {asset_path}")
+
+    logger.info("All asset samples preloaded.")
 
 
 def preload_soundboard_samples():
@@ -387,7 +400,7 @@ def play_song(song_path, blocking=True):
     return None
 
 
-def play_soundboard_sample(key):
+def play_soundboard_sample(key, wait=True):
     """
     Play a soundboard sample based on the input key.
 
@@ -401,6 +414,8 @@ def play_soundboard_sample(key):
     params, audio_data = soundboard_samples[key]
     try:
         sd.play(audio_data, samplerate=params["framerate"])
+        if wait:
+            sd.wait()
     except Exception as e:
         logger.error(f"Failed to play sample {key}: {e}")
 
@@ -541,7 +556,7 @@ def play(number):
         print(f"No song found for number {number} in {JUKEBOX_SONGS_PATH}")
 
         set_all_lamps(LAMP_ON)
-        play_song(ASSETS_PATH + "/TrackNotFound.wav")
+        play_soundboard_sample("TRACK_NOT_FOUND")
         set_all_lamps(LAMP_OFF)
 
         return False
@@ -553,11 +568,13 @@ def play(number):
     logger.info(f"Playing load sample and analyzing BPM...")
 
     # Play the load sample and analyze the BPM at the same time
-    proc = play_song(ASSETS_PATH + "/Load.wav", blocking=False)
+    load_sample_thread = threading.Thread(target=play_soundboard_sample, args=("LOAD"))
+    load_sample_thread.start()
+
     bpm = bpm_tag(spath)
 
     # Wait for the load sample to finish
-    proc.wait()
+    load_sample_thread.join()
 
     # Play the song
     proc = play_song(spath, blocking=False)
@@ -683,7 +700,7 @@ def soundboard():
             return
 
         else:
-            play_soundboard_sample(key)
+            play_soundboard_sample(key, wait=False)
             timeout = time.time() + SOUNDBOARD_TIMEOUT
 
 
@@ -692,7 +709,7 @@ def run():
     Main event loop. Waits for song input, plays the song, and synchronizes lights.
     """
 
-    preload_fallback_sample()  # TODO: Maybe do this with all asset samples?
+    preload_assets()
 
     def clear_animation():
         for _ in range(3):
