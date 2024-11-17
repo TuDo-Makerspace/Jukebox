@@ -242,31 +242,6 @@ def song_path(number):
     return song_files[0] if song_files else None
 
 
-def soundboard_sample_path(number):
-    """
-    Get the file path of the soundboard sample based on the input number.
-
-    Args:
-        number (int): The soundboard sample number.
-
-    Returns:
-        str: Path to the soundboard sample file, or None if no match is found.
-    """
-    soundboard_path = Path(JUKEBOX_SOUNDBOARD_PATH)
-    soundboard_pattern = f"{number}_*.wav"
-    soundboard_files = []
-
-    for pattern in soundboard_pattern.split():
-        soundboard_files.extend(glob.glob(str(soundboard_path / pattern)))
-
-    if len(soundboard_files) > 1:
-        logger.warning(
-            f"Warning: Found multiple files for number {number}, using the first one."
-        )
-
-    return soundboard_files[0] if soundboard_files else None
-
-
 def reserved_track_numbers():
     """
     Get a list of reserved track numbers based on the song files.
@@ -320,6 +295,7 @@ def bpm_tag(file_path):
 def preload_soundboard_samples():
     """
     Preloads all soundboard samples into memory for faster playback.
+    Supports numeric keys and special keys like 'R', 'G', 'RED', and 'BLUE'.
     """
     global soundboard_samples
     if not JUKEBOX_SOUNDBOARD_PATH:
@@ -332,22 +308,35 @@ def preload_soundboard_samples():
         return
 
     for sample_file in soundboard_path.glob("*.wav"):
-        number_match = sample_file.stem.split("_")[0]
-        if number_match.isdigit():
-            number = int(number_match)
-            try:
-                with wave.open(str(sample_file), "rb") as wf:
-                    params = {
-                        "channels": wf.getnchannels(),
-                        "framerate": wf.getframerate(),
-                        "sampwidth": wf.getsampwidth(),
-                    }
-                    frames = wf.readframes(wf.getnframes())
-                    audio_data = np.frombuffer(frames, dtype=np.int16)
-                    soundboard_samples[number] = (params, audio_data)
-                    logger.info(f"Preloaded sample {number} from {sample_file}.")
-            except Exception as e:
-                logger.error(f"Failed to preload sample {sample_file}: {e}")
+        try:
+            # Extract the key (supports numbers and text keys like R, G, etc.)
+            key_match = sample_file.stem.split("_")[0].upper()
+
+            # Validate key
+            if key_match.isdigit():
+                key = int(key_match)
+            elif key_match in {"R", "G", "RED", "BLUE"}:
+                key = key_match
+            else:
+                logger.warning(
+                    f"Unsupported sample key in file {sample_file}. Skipping."
+                )
+                continue
+
+            # Load the sample
+            with wave.open(str(sample_file), "rb") as wf:
+                params = {
+                    "channels": wf.getnchannels(),
+                    "framerate": wf.getframerate(),
+                    "sampwidth": wf.getsampwidth(),
+                }
+                frames = wf.readframes(wf.getnframes())
+                audio_data = np.frombuffer(frames, dtype=np.int16)
+                soundboard_samples[key] = (params, audio_data)
+                logger.info(f"Preloaded sample {key} from {sample_file}.")
+        except Exception as e:
+            logger.error(f"Failed to preload sample {sample_file}: {e}")
+
     logger.info("All soundboard samples preloaded.")
 
 
@@ -374,24 +363,24 @@ def play_song(song_path, blocking=True):
     return None
 
 
-def play_soundboard_sample(number):
+def play_soundboard_sample(key):
     """
     Play a soundboard sample based on the input number.
 
     Args:
         number (int): The sample number to play.
     """
-    if number not in soundboard_samples:
-        logger.error(f"No preloaded sample found for number {number}.")
+    if key not in soundboard_samples:
+        logger.error(f"No preloaded sample found for key {key}.")
         return
 
-    params, audio_data = soundboard_samples[number]
+    params, audio_data = soundboard_samples[key]
     try:
         sd.play(
             audio_data, samplerate=params["framerate"] * 2
         )  # Not sure why we need to multiply by 2
     except Exception as e:
-        logger.error(f"Failed to play sample {number}: {e}")
+        logger.error(f"Failed to play sample {key}: {e}")
 
 
 def set_all_lamps(state):
@@ -668,12 +657,9 @@ def soundboard():
                 time.sleep(0.15)
             return
 
-        elif key in ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]:
-            number = int(key)
-            play_soundboard_sample(number)
+        else:
+            play_soundboard_sample(key)
             timeout = time.time() + SOUNDBOARD_TIMEOUT
-
-        # TODO: Support samples for R, G, RED, BLUE
 
 
 def run():
