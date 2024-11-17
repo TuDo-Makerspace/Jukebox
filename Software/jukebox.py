@@ -292,21 +292,44 @@ def bpm_tag(file_path):
     return bpm
 
 
+def preload_fallback_sample():
+    """
+    Preload the fallback sample into memory for use when no other sample is assigned
+    to a key.
+    """
+    global soundboard_samples
+    fallback_sample_path = Path(ASSETS_PATH) / "SampleMissing.wav"
+
+    if fallback_sample_path.exists():
+        try:
+            with wave.open(str(fallback_sample_path), "rb") as wf:
+                params = {
+                    "channels": wf.getnchannels(),
+                    "framerate": wf.getframerate(),
+                    "sampwidth": wf.getsampwidth(),
+                }
+                frames = wf.readframes(wf.getnframes())
+                audio_data = np.frombuffer(frames, dtype=np.int16)
+                soundboard_samples["MISSING"] = (params, audio_data)
+                logger.info(f"Fallback sample preloaded from {fallback_sample_path}.")
+        except Exception as e:
+            logger.error(f"Failed to preload fallback sample: {e}")
+    else:
+        logger.error(f"Fallback sample not found: {fallback_sample_path}")
+
+
 def preload_soundboard_samples():
     """
     Preloads all soundboard samples into memory for faster playback.
     Supports numeric keys and special keys like 'R', 'G', 'RED', and 'BLUE'.
     """
     global soundboard_samples
-    if not JUKEBOX_SOUNDBOARD_PATH:
-        logger.error("Environment variable JUKEBOX_SOUNDBOARD_PATH is not set.")
-        return
+
+    logger.info("Preloading soundboard samples...")
+
+    set_all_lamps(LAMP_ON)
 
     soundboard_path = Path(JUKEBOX_SOUNDBOARD_PATH)
-    if not soundboard_path.exists():
-        logger.error(f"Soundboard path '{JUKEBOX_SOUNDBOARD_PATH}' does not exist.")
-        return
-
     for sample_file in soundboard_path.glob("*.wav"):
         try:
             # Extract the key (supports numbers and text keys like R, G, etc.)
@@ -337,6 +360,7 @@ def preload_soundboard_samples():
         except Exception as e:
             logger.error(f"Failed to preload sample {sample_file}: {e}")
 
+    set_all_lamps(LAMP_OFF)
     logger.info("All soundboard samples preloaded.")
 
 
@@ -365,20 +389,18 @@ def play_song(song_path, blocking=True):
 
 def play_soundboard_sample(key):
     """
-    Play a soundboard sample based on the input number.
+    Play a soundboard sample based on the input key.
 
     Args:
-        number (int): The sample number to play.
+        key (str or int): The sample key to play.
     """
     if key not in soundboard_samples:
-        logger.error(f"No preloaded sample found for key {key}.")
-        return
+        logger.warning(f"No sample found for key {key}. Using fallback sample.")
+        key = "MISSING"
 
     params, audio_data = soundboard_samples[key]
     try:
-        sd.play(
-            audio_data, samplerate=params["framerate"] * 2
-        )  # Not sure why we need to multiply by 2
+        sd.play(audio_data, samplerate=params["framerate"])
     except Exception as e:
         logger.error(f"Failed to play sample {key}: {e}")
 
@@ -626,6 +648,9 @@ def soundboard():
     Exits when the red button is pressed.
     """
     logger.info("Entering soundboard mode...")
+
+    preload_soundboard_samples()
+
     timeout = time.time() + SOUNDBOARD_TIMEOUT
 
     while True:
@@ -666,7 +691,8 @@ def run():
     """
     Main event loop. Waits for song input, plays the song, and synchronizes lights.
     """
-    preload_soundboard_samples()
+
+    preload_fallback_sample()  # TODO: Maybe do this with all asset samples?
 
     def clear_animation():
         for _ in range(3):
