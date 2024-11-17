@@ -14,14 +14,13 @@
     <div class="container mt-4">
         <h1 class="text-center mb-4">Jukebox Soundboard Samples</h1>
 
-        <!-- sample Grid -->
+        <!-- Sample Grid -->
         <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-3">
             {% for slot in slots %}
             <div class="col">
                 <div class="sample-box {% if slot.is_empty %}empty{% else %}uploaded{% endif %}" data-bs-toggle="modal"
-                    data-bs-target="#uploadModal" data-sample-number="{{ slot.number }}"
-                    data-sample-name="{{ slot.name }}">
-                    <div class="sample-number">Sample {{ slot.number }}</div>
+                    data-bs-target="#uploadModal" data-sample-key="{{ slot.key }}" data-sample-name="{{ slot.name }}">
+                    <div class="sample-number">Sample {{ slot.key }}</div>
                     <div class="sample-name">
                         {% if not slot.is_empty %}
                         {{ slot.name }}
@@ -44,7 +43,7 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <p><strong>Sample Number:</strong> <span id="modalsampleNumber"></span></p>
+                    <p><strong>Sample Key:</strong> <span id="modalsampleKey"></span></p>
                     <div id="modalsampleTitleContainer">
                         <p><strong>Sample Title:</strong> <span id="modalsampleName"></span></p>
                     </div>
@@ -224,10 +223,10 @@
         const spotifyForm = document.getElementById('spotifyForm');
         const deleteForm = document.getElementById('deleteForm');
 
-        const modalsampleNumber = document.getElementById('modalsampleNumber');
-        const mp3WavsampleNumber = document.getElementById('mp3WavsampleNumber');
-        const ytdlpsampleNumber = document.getElementById('ytdlpsampleNumber');
-        const spotifysampleNumber = document.getElementById('spotifysampleNumber');
+        const modalsampleKey = document.getElementById('modalsampleKey');
+        const mp3WavsampleKey = document.getElementById('mp3WavsampleKey');
+        const ytdlpsampleKey = document.getElementById('ytdlpsampleKey');
+        const spotifysampleKey = document.getElementById('spotifysampleKey');
 
         const deleteButton = document.getElementById('deletesampleButton');
         const mp3WavUploadButton = document.getElementById('mp3WavUploadButton');
@@ -237,12 +236,12 @@
         // Handle when the main upload modal is shown
         uploadModal._element.addEventListener('show.bs.modal', function (event) {
             const button = event.relatedTarget;
-            const sampleNumber = button.getAttribute('data-sample-number');
+            const sampleKey = button.getAttribute('data-sample-key');
             const sampleName = button.getAttribute('data-sample-name');
             const isEmpty = button.classList.contains('empty');
 
             // Set the sample number and title in the modal
-            modalsampleNumber.textContent = sampleNumber;
+            modalsampleKey.textContent = sampleKey;
 
             if (!isEmpty) {
                 const MAX_TITLE_LEN = 40; // Maximum length of the string
@@ -259,7 +258,7 @@
             // Update the delete button action dynamically
             deleteButton.onclick = async () => {
                 try {
-                    const response = await fetch(`/delete/${sampleNumber}`, { method: 'POST' });
+                    const response = await fetch(`/delete/${sampleKey}`, { method: 'POST' });
                     const result = await response.json();
 
                     if (response.ok) {
@@ -267,7 +266,7 @@
                         uploadModal.hide();
 
                         // Remove the sample box from the grid
-                        const sampleBox = document.querySelector(`.sample-box[data-sample-number="${sampleNumber}"]`);
+                        const sampleBox = document.querySelector(`.sample-box[data-sample-key="${sampleKey}"]`);
                         if (sampleBox) {
                             sampleBox.classList.add('empty');
                             sampleBox.querySelector('.sample-name').textContent = 'Empty Slot';
@@ -293,7 +292,7 @@
             const formData = new FormData(this);
 
             try {
-                const response = await fetch(`/upload_sample/${modalsampleNumber.textContent}`, { method: 'POST', body: formData });
+                const response = await fetch(`/upload_sample/${modalsampleKey.textContent}`, { method: 'POST', body: formData });
                 const result = await response.json();
                 uploadingModal.hide();
                 if (response.ok) {
@@ -318,7 +317,7 @@
 
             const formData = new FormData(this);
             try {
-                const response = await fetch(`/upload_sample/${modalsampleNumber.textContent}`, { method: 'POST', body: formData });
+                const response = await fetch(`/upload_sample/${modalsampleKey.textContent}`, { method: 'POST', body: formData });
                 const result = await response.json();
                 downloadingModal.hide();
                 if (response.ok) {
@@ -343,7 +342,7 @@
 
             const formData = new FormData(this);
             try {
-                const response = await fetch(`/upload_sample/${modalsampleNumber.textContent}`, { method: 'POST', body: formData });
+                const response = await fetch(`/upload_sample/${modalsampleKey.textContent}`, { method: 'POST', body: formData });
                 const result = await response.json();
                 downloadingModal.hide();
                 if (response.ok) {

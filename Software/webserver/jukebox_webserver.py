@@ -542,28 +542,34 @@ def index():
 @app.route("/samples")
 def samples():
     """
-    Serve the page for the samples list (0-9).
+    Serve the page for the samples list (0-9, R, G, RED, BLUE).
     """
     samples = {}
     for filename in os.listdir(JUKEBOX_SAMPLES_PATH):
-        if filename.lower().endswith((".wav")):
-            sample_number = filename.split("_")[0]
-            sample_name = filename.split("_", 1)[1]
-            sample_name = os.path.splitext(sample_name)[0]
+        if filename.lower().endswith(".wav"):
+            sample_key = filename.split("_")[
+                0
+            ].upper()  # Extract key (e.g., "R", "RED", "3")
+            sample_name = filename.split("_", 1)[1] if "_" in filename else filename
+            sample_name = os.path.splitext(sample_name)[0]  # Remove extension
 
             # If sample name exceeds the maximum length, truncate it
             if len(sample_name) > MAX_TRACK_NAME_LEN:
                 sample_name = sample_name[:MAX_TRACK_NAME_LEN] + "..."
 
-            samples[int(sample_number)] = sample_name
+            samples[sample_key] = sample_name
 
+    # Define all possible keys
+    valid_keys = [str(i) for i in range(10)] + ["R", "G", "RED", "BLUE"]
+
+    # Build the slots list
     slots = []
-    for i in range(0, 10):
+    for key in valid_keys:
         slots.append(
             {
-                "number": i,
-                "name": samples.get(i, ""),  # Empty string if no sample uploaded
-                "is_empty": i not in samples,
+                "key": key,
+                "name": samples.get(key, ""),  # Empty string if no sample uploaded
+                "is_empty": key not in samples,
             }
         )
 
@@ -782,16 +788,18 @@ def upload(track_number):
     return jsonify({"error": "No file or link provided."}), 400
 
 
-@app.route("/upload_sample/<int:sample_number>", methods=["POST"])
-def upload_sample(sample_number):
+@app.route("/upload_sample/<sample_key>", methods=["POST"])
+def upload_sample(sample_key):
     """
     Handle file upload for a specific sample.
     """
-    logger.info(f"Received upload request for sample {sample_number}")
+    logger.info(f"Received upload request for sample {sample_key}")
 
-    if sample_number < 0 or sample_number > 9:
-        logger.error("Sample number out of range.")
-        return jsonify({"error": " Sample number out of range."}), 400
+    # Valid keys include "0-9", "R", "G", "RED", "BLUE"
+    valid_keys = [str(i) for i in range(10)] + ["R", "G", "RED", "BLUE"]
+    if sample_key.upper() not in valid_keys:
+        logger.error(f"Invalid sample key: {sample_key}")
+        return jsonify({"error": "Invalid sample key."}), 400
 
     # Get the optional name field
     custom_name = request.form.get("name", "").strip()
@@ -854,16 +862,16 @@ def upload_sample(sample_number):
 
         # Add sample number and (if provided) custom name to the filename
         if custom_name:
-            new_filename = f"{sample_number}_{custom_name}.wav"
+            new_filename = f"{sample_key}_{custom_name}.wav"
         else:
             # Use the original filename as the sample name
-            new_filename = f"{sample_number}_{os.path.basename(tmp_file_path)}"
+            new_filename = f"{sample_key}_{os.path.basename(tmp_file_path)}"
 
         new_file_path = os.path.join(JUKEBOX_SAMPLES_PATH, new_filename)
 
         # Remove old file for the same sample number
         for existing_file in os.listdir(JUKEBOX_SAMPLES_PATH):
-            if existing_file.startswith(f"{sample_number}_"):
+            if existing_file.startswith(f"{sample_key}_"):
                 os.remove(os.path.join(JUKEBOX_SAMPLES_PATH, existing_file))
                 logger.info(f"Removed existing sample: {existing_file}")
 
@@ -970,19 +978,19 @@ def upload_sample(sample_number):
         try:
             # Remove old file for the same sample number
             for existing_file in os.listdir(JUKEBOX_SAMPLES_PATH):
-                if existing_file.startswith(f"{sample_number}_"):
+                if existing_file.startswith(f"{sample_key}_"):
                     os.remove(os.path.join(JUKEBOX_SAMPLES_PATH, existing_file))
                     logger.info(f"Removed existing sample: {existing_file}")
 
             # Add sample number and (if provided) custom name to the filename
             if custom_name:
                 final_out = os.path.join(
-                    JUKEBOX_SAMPLES_PATH, f"{sample_number}_{custom_name}.wav"
+                    JUKEBOX_SAMPLES_PATH, f"{sample_key}_{custom_name}.wav"
                 )
             else:
                 # Use the original filename as the sample name
                 final_out = os.path.join(
-                    JUKEBOX_SAMPLES_PATH, f"{sample_number}_{os.path.basename(out)}"
+                    JUKEBOX_SAMPLES_PATH, f"{sample_key}_{os.path.basename(out)}"
                 )
 
             # Move the file to the JUKEBOX_SAMPLES_PATH
