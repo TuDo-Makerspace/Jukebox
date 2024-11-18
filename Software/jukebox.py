@@ -413,7 +413,7 @@ def play_soundboard_sample(key, wait=True):
 
     params, audio_data = soundboard_samples[key]
     try:
-        sd.play(audio_data, samplerate=params["framerate"])
+        sd.play(audio_data, samplerate=params["framerate"] * 2)
         if wait:
             sd.wait()
     except Exception as e:
