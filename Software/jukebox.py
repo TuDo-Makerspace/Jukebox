@@ -297,11 +297,11 @@ def bpm_tag(file_path):
 def preload_assets():
     """
     Preload all asset audio files into memory for faster access during playback.
-    Includes TrackNotFound.wav, Load.wav, and SampleMissing.wav.
+    Includes TrackMissing.wav, Load.wav, and SampleMissing.wav.
     """
     global samples
     asset_files = {
-        "TRACK_NOT_FOUND": "TrackNotFound.wav",
+        "TRACK_NOT_FOUND": "TrackMissing.wav",
         "LOAD": "Load.wav",
         "MISSING": "SampleMissing.wav",
     }
