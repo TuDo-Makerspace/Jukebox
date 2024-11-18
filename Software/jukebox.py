@@ -67,7 +67,7 @@ SOUNDBOARD_TIMEOUT = 60  # seconds
 logger = logging.getLogger(__name__)
 
 # Soudboard samples pre-loaded into memory for faster playback
-soundboard_samples = {}
+samples = {}
 
 ################################################################
 # Lamps
@@ -187,6 +187,8 @@ KEYPAD_DEBOUNCE_DELAY = 0.15  # seconds
 
 KEYPAD_TIMEOUT = 5  # seconds
 
+KEYPAD_TAKE_SAMPLES = 10  # Number of samples to take in case for reading the keypad
+
 ################################################################
 # Functions
 ################################################################
@@ -297,7 +299,7 @@ def preload_assets():
     Preload all asset audio files into memory for faster access during playback.
     Includes TrackNotFound.wav, Load.wav, and SampleMissing.wav.
     """
-    global soundboard_samples
+    global samples
     asset_files = {
         "TRACK_NOT_FOUND": "TrackNotFound.wav",
         "LOAD": "Load.wav",
@@ -317,9 +319,20 @@ def preload_assets():
                         "framerate": wf.getframerate(),
                         "sampwidth": wf.getsampwidth(),
                     }
+
+                    if params["framerate"] != 44100 and params["framerate"] != 48000:
+                        logger.error(
+                            f"Unsupported sample rate for asset {key}: {params['framerate']}."
+                        )
+                        continue
+
                     frames = wf.readframes(wf.getnframes())
                     audio_data = np.frombuffer(frames, dtype=np.int16)
-                    soundboard_samples[key] = (params, audio_data)
+
+                    if params["channels"] > 1:
+                        audio_data = np.reshape(audio_data, (-1, params["channels"]))
+
+                    samples[key] = (params, audio_data)
                     logger.info(f"Preloaded asset sample {key} from {asset_path}.")
             except Exception as e:
                 logger.error(
@@ -336,7 +349,7 @@ def preload_soundboard_samples():
     Preloads all soundboard samples into memory for faster playback.
     Supports numeric keys and special keys like 'R', 'G', 'RED', and 'BLUE'.
     """
-    global soundboard_samples
+    global samples
 
     logger.info("Preloading soundboard samples...")
 
@@ -368,7 +381,13 @@ def preload_soundboard_samples():
                 }
                 frames = wf.readframes(wf.getnframes())
                 audio_data = np.frombuffer(frames, dtype=np.int16)
-                soundboard_samples[key] = (params, audio_data)
+
+                if params["channels"] > 1:
+                    audio_data = np.reshape(audio_data, (-1, params["channels"]))
+
+                # IMPORTANT: The key must be a string since the keypad inputs are defined as strings
+                samples[str(key)] = (params, audio_data)
+
                 logger.info(f"Preloaded sample {key} from {sample_file}.")
         except Exception as e:
             logger.error(f"Failed to preload sample {sample_file}: {e}")
@@ -400,20 +419,20 @@ def play_song(song_path, blocking=True):
     return None
 
 
-def play_soundboard_sample(key, wait=True):
+def play_sample(key, wait=True):
     """
     Play a soundboard sample based on the input key.
 
     Args:
         key (str or int): The sample key to play.
     """
-    if key not in soundboard_samples:
-        logger.warning(f"No sample found for key {key}. Using fallback sample.")
+    if key not in samples:
+        logger.info(f"No sample found for key {key}.")
         key = "MISSING"
 
-    params, audio_data = soundboard_samples[key]
+    params, audio_data = samples[key]
     try:
-        sd.play(audio_data, samplerate=params["framerate"] * 2)
+        sd.play(audio_data, params["framerate"])
         if wait:
             sd.wait()
     except Exception as e:
@@ -484,10 +503,19 @@ def read_keypad_input():
     Returns:
         str: The button pressed (e.g., "1", "R", "G").
     """
-    current_state = tuple(GPIO.input(pin) for pin in GPIO_KEYPAD_PINS)
 
-    if current_state in KEYPAD_LOOKUP:
-        return KEYPAD_LOOKUP[current_state]
+    if KEYPAD_TAKE_SAMPLES and KEYPAD_TAKE_SAMPLES > 1:
+        samples = [
+            tuple(GPIO.input(pin) for pin in GPIO_KEYPAD_PINS)
+            for _ in range(KEYPAD_TAKE_SAMPLES)
+        ]
+        # Take the most frequent state as the current state
+        read = max(set(samples), key=samples.count)
+    else:
+        read = tuple(GPIO.input(pin) for pin in GPIO_KEYPAD_PINS)
+
+    if read in KEYPAD_LOOKUP:
+        return KEYPAD_LOOKUP[read]
 
     return None
 
@@ -556,7 +584,7 @@ def play(number):
         print(f"No song found for number {number} in {JUKEBOX_SONGS_PATH}")
 
         set_all_lamps(LAMP_ON)
-        play_soundboard_sample("TRACK_NOT_FOUND")
+        play_sample("TRACK_NOT_FOUND")
         set_all_lamps(LAMP_OFF)
 
         return False
@@ -568,7 +596,7 @@ def play(number):
     logger.info(f"Playing load sample and analyzing BPM...")
 
     # Play the load sample and analyze the BPM at the same time
-    load_sample_thread = threading.Thread(target=play_soundboard_sample, args=("LOAD"))
+    load_sample_thread = threading.Thread(target=play_sample, args=("LOAD",))
     load_sample_thread.start()
 
     bpm = bpm_tag(spath)
@@ -622,8 +650,21 @@ def idle(start_with_animation=True):
         key = read_keypad_input()
         if key:
             logger.info(f"Key pressed: {key}")
+
+            # Turn on lamps
             set_all_lamps(LAMP_ON)
+
+            # Debounce
             time.sleep(KEYPAD_DEBOUNCE_DELAY)
+
+            # Wait for keypad release (check for all pins to be low)
+            while tuple(GPIO.input(pin) for pin in GPIO_KEYPAD_PINS) != KEYPAD_RELEASED:
+                pass
+
+            # Debounce release
+            time.sleep(KEYPAD_DEBOUNCE_DELAY)
+
+            # Turn off lamps
             set_all_lamps(LAMP_OFF)
         return key
 
@@ -684,8 +725,20 @@ def soundboard():
 
         logger.info(f"Key pressed: {key}")
 
+        # Turn on lamps
         set_all_lamps(LAMP_ON)
+
+        # Debounce
         time.sleep(KEYPAD_DEBOUNCE_DELAY)
+
+        # Wait for keypad release (check for all pins to be low)
+        while tuple(GPIO.input(pin) for pin in GPIO_KEYPAD_PINS) != KEYPAD_RELEASED:
+            pass
+
+        # Debounce release
+        time.sleep(KEYPAD_DEBOUNCE_DELAY)
+
+        # Turn off lamps
         set_all_lamps(LAMP_OFF)
 
         if key == "YELLOW":
@@ -700,7 +753,7 @@ def soundboard():
             return
 
         else:
-            play_soundboard_sample(key, wait=False)
+            play_sample(key, wait=False)
             timeout = time.time() + SOUNDBOARD_TIMEOUT
 
 
