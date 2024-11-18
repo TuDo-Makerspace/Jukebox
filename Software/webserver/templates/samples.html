@@ -20,7 +20,15 @@
             <div class="col">
                 <div class="sample-box {% if slot.is_empty %}empty{% else %}uploaded{% endif %}" data-bs-toggle="modal"
                     data-bs-target="#uploadModal" data-sample-key="{{ slot.key }}" data-sample-name="{{ slot.name }}">
-                    <div class="sample-number">Sample {{ slot.key }}</div>
+                    <div class="sample-number">
+                        {% if slot.key == 'RED' %}
+                        Sample 🔴
+                        {% elif slot.key == 'BLUE' %}
+                        Sample 🔵
+                        {% else %}
+                        Sample {{ slot.key }}
+                        {% endif %}
+                    </div>
                     <div class="sample-name">
                         {% if not slot.is_empty %}
                         {{ slot.name }}
