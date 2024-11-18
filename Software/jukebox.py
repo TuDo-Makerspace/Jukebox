@@ -725,6 +725,25 @@ def soundboard():
 
         logger.info(f"Key pressed: {key}")
 
+        if key == "YELLOW":
+            logger.info("Exiting soundboard mode...")
+            # Flash all lights to indicate exit
+            BLINK_T = 0.15
+            for _ in range(3):
+                # Blink all lights to indicate reset
+                set_all_lamps(LAMP_ON)
+                time.sleep(BLINK_T)
+                set_all_lamps(LAMP_OFF)
+                time.sleep(BLINK_T)
+
+            if KEYPAD_DEBOUNCE_DELAY > 3 * (2 * BLINK_T):
+                time.sleep(KEYPAD_DEBOUNCE_DELAY - (3 * (2 * BLINK_T)))
+
+            return
+        else:
+            play_sample(key, wait=False)
+            timeout = time.time() + SOUNDBOARD_TIMEOUT
+
         # Turn on lamps
         set_all_lamps(LAMP_ON)
 
@@ -740,21 +759,6 @@ def soundboard():
 
         # Turn off lamps
         set_all_lamps(LAMP_OFF)
-
-        if key == "YELLOW":
-            logger.info("Exiting soundboard mode...")
-            # Flash all lights to indicate exit
-            for _ in range(3):
-                # Blink all lights to indicate reset
-                set_all_lamps(LAMP_ON)
-                time.sleep(0.15)
-                set_all_lamps(LAMP_OFF)
-                time.sleep(0.15)
-            return
-
-        else:
-            play_sample(key, wait=False)
-            timeout = time.time() + SOUNDBOARD_TIMEOUT
 
 
 def run():
