@@ -617,19 +617,31 @@ def play(number):
     lights_thread.start()
 
     # Do the lights and check for red button press (stop)
+    aborted = False
     try:
         while proc.poll() is None:
             if read_keypad_input() == "RED":
                 proc.terminate()
                 logger.info("Song stopped by user.")
-                debounce_and_await_release()
+                aborted = True
                 break
     finally:
         # Signal the light thread to stop and wait for it to finish
         stop_event.set()
         lights_thread.join()
 
-    set_all_lamps(LAMP_OFF)
+        set_all_lamps(LAMP_OFF)
+
+        # Debounce if abort key was pressed
+        # This is a little excessive, but why not...
+        if aborted:
+            # User still holding the button
+            if read_keypad_input() == "RED":
+                debounce_and_await_release()
+
+            # User likely released the button
+            else:
+                time.sleep(KEYPAD_DEBOUNCE_DELAY)
 
     logger.info("Done playing song.")
 
