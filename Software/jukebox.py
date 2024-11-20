@@ -57,6 +57,14 @@ JUKEBOX_SOUNDBOARD_PATH = os.getenv("JUKEBOX_SOUNDBOARD_PATH")
 # Assets directory
 ASSETS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets")
 
+# Asset files and their corresponding keys (See samples dict below)
+ASSET_FILES = {
+    "TRACK_NOT_FOUND": "TrackMissing.wav",
+    "LOAD": "Load.wav",
+    "MISSING": "SampleMissing.wav",
+}
+
+
 # Interval at which the idle animation is triggered
 IDLE_ANIMATION_INTERVAL = 30  # seconds
 
@@ -66,7 +74,8 @@ SOUNDBOARD_TIMEOUT = 60  # seconds
 # Logger
 logger = logging.getLogger(__name__)
 
-# Soudboard samples pre-loaded into memory for faster playback
+# Dictionary to store preloaded samples
+# Samples are pre-loaded for faster access during playback
 samples = {}
 
 ################################################################
@@ -300,15 +309,10 @@ def preload_assets():
     Includes TrackMissing.wav, Load.wav, and SampleMissing.wav.
     """
     global samples
-    asset_files = {
-        "TRACK_NOT_FOUND": "TrackMissing.wav",
-        "LOAD": "Load.wav",
-        "MISSING": "SampleMissing.wav",
-    }
 
     logger.info("Preloading asset samples...")
 
-    for key, filename in asset_files.items():
+    for key, filename in ASSET_FILES.items():
         asset_path = Path(ASSETS_PATH) / filename
 
         if asset_path.exists():
@@ -362,9 +366,7 @@ def preload_soundboard_samples():
             key_match = sample_file.stem.split("_")[0].upper()
 
             # Validate key
-            if key_match.isdigit():
-                key = int(key_match)
-            elif key_match in {"R", "G", "RED", "BLUE"}:
+            if key_match.isdigit() or key_match in {"R", "G", "RED", "BLUE"}:
                 key = key_match
             else:
                 logger.warning(
@@ -379,6 +381,13 @@ def preload_soundboard_samples():
                     "framerate": wf.getframerate(),
                     "sampwidth": wf.getsampwidth(),
                 }
+
+                if params["framerate"] != 44100 and params["framerate"] != 48000:
+                    logger.error(
+                        f"Unsupported sample rate for asset {key}: {params['framerate']}."
+                    )
+                    continue
+
                 frames = wf.readframes(wf.getnframes())
                 audio_data = np.frombuffer(frames, dtype=np.int16)
 
@@ -386,7 +395,7 @@ def preload_soundboard_samples():
                     audio_data = np.reshape(audio_data, (-1, params["channels"]))
 
                 # IMPORTANT: The key must be a string since the keypad inputs are defined as strings
-                samples[str(key)] = (params, audio_data)
+                samples[key] = (params, audio_data)
 
                 logger.info(f"Preloaded sample {key} from {sample_file}.")
         except Exception as e:
