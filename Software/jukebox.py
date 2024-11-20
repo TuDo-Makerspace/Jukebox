@@ -529,6 +529,19 @@ def read_keypad_input():
     return None
 
 
+def debounce_and_await_release():
+    """
+    Debounce the keypad input and wait for the release of all keys.
+    Also provides visual feedback by turning on all lights while waiting.
+    """
+    set_all_lamps(LAMP_ON)
+    time.sleep(KEYPAD_DEBOUNCE_DELAY)
+    while tuple(GPIO.input(pin) for pin in GPIO_KEYPAD_PINS) != KEYPAD_RELEASED:
+        pass
+    time.sleep(KEYPAD_DEBOUNCE_DELAY)
+    set_all_lamps(LAMP_OFF)
+
+
 def prompt_keypad_input():
     """
     Wait for a button press on the keypad. Once a button is pressed,
@@ -538,7 +551,6 @@ def prompt_keypad_input():
     Returns:
         str: The button pressed (e.g., "1", "R", "G").
     """
-    previous_read = None
     timeout_in = time.time() + KEYPAD_TIMEOUT
 
     while True:
@@ -550,29 +562,10 @@ def prompt_keypad_input():
         read = read_keypad_input()
 
         # Check if the state matches a button in the lookup table
-        if read and read != previous_read:
-
+        if read:
             logger.info(f"Keypad input: {read}")
-
-            # Turn on lamps
-            set_all_lamps(LAMP_ON)
-
-            # Debounce
-            time.sleep(KEYPAD_DEBOUNCE_DELAY)
-
-            # Wait for keypad release (check for all pins to be low)
-            while tuple(GPIO.input(pin) for pin in GPIO_KEYPAD_PINS) != KEYPAD_RELEASED:
-                pass
-
-            # Debounce release
-            time.sleep(KEYPAD_DEBOUNCE_DELAY)
-
-            # Turn off lamps
-            set_all_lamps(LAMP_OFF)
-
+            debounce_and_await_release()
             return read
-
-        previous_read = read
 
         # Small delay to avoid excessive CPU usage
         time.sleep(0.05)
@@ -629,6 +622,7 @@ def play(number):
             if read_keypad_input() == "RED":
                 proc.terminate()
                 logger.info("Song stopped by user.")
+                debounce_and_await_release()
                 break
     finally:
         # Signal the light thread to stop and wait for it to finish
@@ -659,22 +653,7 @@ def idle(start_with_animation=True):
         key = read_keypad_input()
         if key:
             logger.info(f"Key pressed: {key}")
-
-            # Turn on lamps
-            set_all_lamps(LAMP_ON)
-
-            # Debounce
-            time.sleep(KEYPAD_DEBOUNCE_DELAY)
-
-            # Wait for keypad release (check for all pins to be low)
-            while tuple(GPIO.input(pin) for pin in GPIO_KEYPAD_PINS) != KEYPAD_RELEASED:
-                pass
-
-            # Debounce release
-            time.sleep(KEYPAD_DEBOUNCE_DELAY)
-
-            # Turn off lamps
-            set_all_lamps(LAMP_OFF)
+            debounce_and_await_release()
         return key
 
     while True:
@@ -753,21 +732,7 @@ def soundboard():
             play_sample(key, wait=False)
             timeout = time.time() + SOUNDBOARD_TIMEOUT
 
-        # Turn on lamps
-        set_all_lamps(LAMP_ON)
-
-        # Debounce
-        time.sleep(KEYPAD_DEBOUNCE_DELAY)
-
-        # Wait for keypad release (check for all pins to be low)
-        while tuple(GPIO.input(pin) for pin in GPIO_KEYPAD_PINS) != KEYPAD_RELEASED:
-            pass
-
-        # Debounce release
-        time.sleep(KEYPAD_DEBOUNCE_DELAY)
-
-        # Turn off lamps
-        set_all_lamps(LAMP_OFF)
+        debounce_and_await_release()
 
 
 def run():
