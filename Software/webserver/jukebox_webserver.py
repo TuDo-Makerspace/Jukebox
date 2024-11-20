@@ -39,8 +39,6 @@ import tempfile
 from flask import Flask, render_template, request, redirect, url_for, jsonify
 from yt_dlp import YoutubeDL
 
-app = Flask(__name__)
-logger = logging.getLogger(__name__)
 
 ################################################################
 # Globals
@@ -51,6 +49,16 @@ MAX_TRACK_NAME_LEN = 100
 
 # Max track number
 MAX_TRACK_NUMBER = 999
+
+# Flask app
+app = Flask(__name__)
+
+# Logging
+logging.basicConfig(
+    level=logging.DEBUG if "-d" in sys.argv else logging.INFO,
+    format="[%(levelname)-8s] %(name)s.%(funcName)s (line %(lineno)d): %(message)s",
+)
+logger = logging.getLogger(__name__)
 
 # Path to store songs
 try:
@@ -596,7 +604,10 @@ def upload(track_number):
     # Create a temporary directory for the download
     temp_dir = create_temp_dir()
 
-    # Handle file uploads
+    ################################################################
+    # File Uploads
+    ################################################################
+
     if "file" in request.files and request.files["file"].filename != "":
         file = request.files["file"]
 
@@ -658,9 +669,13 @@ def upload(track_number):
         logger.info("File uploaded successfully!")
         return jsonify({"success": "File uploaded successfully!"}), 200
 
-    # Handle YouTube link uploads
+    ################################################################
+    # Links
+    ################################################################
+
     ytdlp_link = request.form.get("ytdlp_link")
     spotify_link = request.form.get("spotify_link")
+
     if ytdlp_link or spotify_link:
 
         bpm_analyzed = False
@@ -669,10 +684,12 @@ def upload(track_number):
         if ytdlp_link:
             logger.info(f"Received YouTube link: {ytdlp_link}")
 
-            # Try remote download first
             errmsg = None
+
+            # Try remote download first
             try:
                 logger.info("Trying remote download...")
+
                 if not remote:
                     raise Exception("Remote server not configured.")
 
@@ -684,6 +701,8 @@ def upload(track_number):
                 rm_remote_dir(temp_dir)
                 bpm_analyzed = True
                 logger.info("Remote download successful.")
+
+            # If remote download fails, try local download
             except Exception as e:
                 logger.warning(f"Remote download failed: {str(e)}")
                 logger.info("Trying local download...")
@@ -692,6 +711,7 @@ def upload(track_number):
                     logger.info("Local download successful.")
                 except Exception as e:
                     errmsg = str(e)
+
             if errmsg:
                 cleanup_temp_dir(temp_dir)
                 logger.error(f"Failed to download audio: {errmsg}")
@@ -702,8 +722,10 @@ def upload(track_number):
 
         # Spotify link
         else:
-            # Try remote download first
+
             errmsg = None
+
+            # Try remote download first
             try:
                 logger.info(f"Received Spotify link: {spotify_link}")
                 if not remote:
@@ -717,6 +739,8 @@ def upload(track_number):
                 mv_from_remote(f"{out}", temp_dir)
                 bpm_analyzed = True
                 logger.info("Remote download successful.")
+
+            # If remote download fails, try local download
             except Exception as e:
                 try:
                     logger.warning(f"Remote download failed: {str(e)}")
@@ -750,8 +774,9 @@ def upload(track_number):
                 final_out = os.path.join(
                     JUKEBOX_SONGS_PATH, f"{track_number}_{custom_name}.mp3"
                 )
+
+            # Use the original filename as the track name
             else:
-                # Use the original filename as the track name
                 final_out = os.path.join(
                     JUKEBOX_SONGS_PATH, f"{track_number}_{os.path.basename(out)}"
                 )
@@ -771,10 +796,12 @@ def upload(track_number):
 
             cleanup_temp_dir(temp_dir)
             logger.info("Audio downloaded successfully!")
+
             return (
                 jsonify({"success": "Audio downloaded successfully!"}),
                 200,
             )
+
         except Exception as e:
             cleanup_temp_dir(temp_dir)
             logger.error(f"Download failed: {str(e)}")
@@ -810,7 +837,10 @@ def upload_sample(sample_key):
     # Create a temporary directory for the download
     temp_dir = create_temp_dir()
 
-    # Handle file uploads
+    ################################################################
+    # File Uploads
+    ################################################################
+
     if "file" in request.files and request.files["file"].filename != "":
         file = request.files["file"]
 
@@ -843,6 +873,62 @@ def upload_sample(sample_key):
 
             # Remove the MP3 file
             os.remove(os.path.splitext(tmp_file_path)[0] + ".mp3")
+
+        # If the file is a WAV, convert it to 44100 Hz if necessary
+        else:
+            try:
+                # Get sampling rate of the WAV file
+                result = subprocess.run(
+                    [
+                        "ffprobe",
+                        "-i",
+                        tmp_file_path,
+                        "-show_entries",
+                        "stream=sample_rate",
+                        "-v",
+                        "quiet",
+                        "-of",
+                        "csv=p=0",
+                    ],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                )
+
+                if result.returncode != 0:
+                    raise Exception(f"Failed to get sampling rate: {result.stderr}")
+
+                sampling_rate = int(result.stdout.strip())
+
+                # If the sampling rate is not 44100 or 48000, convert the file to 44100 Hz
+                if sampling_rate not in [44100, 48000]:
+                    logger.info(
+                        f"Converting WAV file with sampling rate {sampling_rate} to 44100 Hz"
+                    )
+
+                    converted_file = os.path.splitext(tmp_file_path)[0] + "_44100.wav"
+
+                    convert_result = subprocess.run(
+                        ["ffmpeg", "-i", tmp_file_path, "-ar", "44100", converted_file],
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE,
+                        text=True,
+                    )
+
+                    if convert_result.returncode != 0:
+                        raise Exception(
+                            f"Failed to convert WAV file: {convert_result.stderr}"
+                        )
+
+                    # Replace the original file with the converted one
+                    os.remove(tmp_file_path)
+                    os.rename(converted_file, tmp_file_path)
+
+            except Exception as e:
+                os.remove(tmp_file_path)
+                cleanup_temp_dir(temp_dir)
+                logger.error(f"Failed to convert WAV file: {str(e)}")
+                return jsonify({"error": f"Failed to convert WAV file: {str(e)}"}), 500
 
         # Check if file size exceeds MAX_SAMPLE_SIZE
         if os.path.getsize(tmp_file_path) > MAX_SAMPLE_SIZE:
@@ -883,17 +969,22 @@ def upload_sample(sample_key):
         logger.info("File uploaded successfully!")
         return jsonify({"success": "File uploaded successfully!"}), 200
 
-    # Handle YouTube link uploads
+    ################################################################
+    # Links
+    ################################################################
+
     ytdlp_link = request.form.get("ytdlp_link")
     spotify_link = request.form.get("spotify_link")
+
     if ytdlp_link or spotify_link:
 
         # YT-DLP link
         if ytdlp_link:
             logger.info(f"Received YouTube link: {ytdlp_link}")
 
-            # Try remote download first
             errmsg = None
+
+            # Try remote download first
             try:
                 logger.info("Trying remote download...")
                 if not remote:
@@ -906,6 +997,7 @@ def upload_sample(sample_key):
                 cp_from_remote(f"{out}", temp_dir)
                 rm_remote_dir(temp_dir)
                 logger.info("Remote download successful.")
+
             except Exception as e:
                 logger.warning(f"Remote download failed: {str(e)}")
                 logger.info("Trying local download...")
@@ -914,6 +1006,7 @@ def upload_sample(sample_key):
                     logger.info("Local download successful.")
                 except Exception as e:
                     errmsg = str(e)
+
             if errmsg:
                 cleanup_temp_dir(temp_dir)
                 logger.error(f"Failed to download audio: {errmsg}")
@@ -924,8 +1017,11 @@ def upload_sample(sample_key):
 
         # Spotify link
         else:
-            # Try remote download first
+            logger.info(f"Received Spotify link: {spotify_link}")
+
             errmsg = None
+
+            # Try remote download first
             try:
                 logger.info(f"Received Spotify link: {spotify_link}")
                 if not remote:
@@ -938,6 +1034,7 @@ def upload_sample(sample_key):
                 remote_bpm_tag(out)
                 mv_from_remote(f"{out}", temp_dir)
                 logger.info("Remote download successful.")
+
             except Exception as e:
                 try:
                     logger.warning(f"Remote download failed: {str(e)}")
@@ -1035,6 +1132,23 @@ def delete(track_number):
 
     logger.error(f"Track {track_number} not found.")
     return jsonify({"error": "Track not found."}), 404
+
+
+@app.route("/delete_sample/<sample_key>", methods=["POST"])
+def delete_sample(sample_key):
+    """
+    Delete a sample from the Jukebox.
+    """
+    logger.info(f"Deleting sample {sample_key}")
+
+    for filename in os.listdir(JUKEBOX_SAMPLES_PATH):
+        if filename.startswith(f"{sample_key}_"):
+            os.remove(os.path.join(JUKEBOX_SAMPLES_PATH, filename))
+            logger.info(f"Sample {sample_key} deleted successfully.")
+            return jsonify({"success": "Sample deleted successfully!"}), 200
+
+    logger.error(f"Sample {sample_key} not found.")
+    return jsonify({"error": "Sample not found."}), 404
 
 
 if __name__ == "__main__":

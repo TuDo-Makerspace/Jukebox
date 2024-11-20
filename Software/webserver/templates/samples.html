@@ -288,7 +288,7 @@
             // Update the delete button action dynamically
             deleteButton.onclick = async () => {
                 try {
-                    const response = await fetch(`/delete/${sampleKey}`, { method: 'POST' });
+                    const response = await fetch(`/delete_sample/${sampleKey}`, { method: 'POST' });
                     const result = await response.json();
 
                     if (response.ok) {
