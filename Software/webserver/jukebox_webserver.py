@@ -151,6 +151,8 @@ def bpm_tag(file_path):
     """
     Run bpm-tag on the given file.
     """
+    logger.info("Analyzing BPM for {file_path}...")
+
     result = subprocess.run(
         ["bpm-tag", file_path],
         stdout=subprocess.PIPE,
@@ -664,6 +666,8 @@ def upload(track_number):
         # Fail silently since this is not a critical operation
         if bpm_tag(new_file_path).returncode != 0:
             logger.warning(f"Failed to analyze BPM for {new_file_path}")
+        else:
+            logger.info(f"BPM analyzed for {new_file_path}")
 
         cleanup_temp_dir(temp_dir)
         logger.info("File uploaded successfully!")

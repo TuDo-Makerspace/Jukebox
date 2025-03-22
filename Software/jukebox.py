@@ -62,6 +62,7 @@ ASSET_FILES = {
     "TRACK_NOT_FOUND": "TrackMissing.wav",
     "LOAD": "Load.wav",
     "MISSING": "SampleMissing.wav",
+    "BANK_OUT_OF_RANGE": "BankOutOfRange.wav",
 }
 
 
@@ -70,6 +71,12 @@ IDLE_ANIMATION_INTERVAL = 30  # seconds
 
 # Soundboard mode timeout
 SOUNDBOARD_TIMEOUT = 60  # seconds
+
+# Maximum Bank Number
+MAX_BANK_NUMBER = 9
+
+# Current bank number
+bank = 0
 
 # Logger
 logger = logging.getLogger(__name__)
@@ -81,8 +88,6 @@ samples = {}
 ################################################################
 # Lamps
 ################################################################
-
-# Note: Lamps are active low.
 
 LAMP_ON = GPIO.LOW
 LAMP_OFF = GPIO.HIGH
@@ -348,25 +353,31 @@ def preload_assets():
     logger.info("All asset samples preloaded.")
 
 
-def preload_soundboard_samples():
+def preload_soundboard_samples(bank):
     """
     Preloads all soundboard samples into memory for faster playback.
     Supports numeric keys and special keys like 'R', 'G', 'RED', and 'BLUE'.
     """
     global samples
 
-    logger.info("Preloading soundboard samples...")
+    logger.info(f"Preloading samples for bank {bank}...")
 
     set_all_lamps(LAMP_ON)
 
-    soundboard_path = Path(JUKEBOX_SOUNDBOARD_PATH)
-    for sample_file in soundboard_path.glob("*.wav"):
+    bank_path = Path(JUKEBOX_SOUNDBOARD_PATH) / str(bank)
+
+    if not bank_path.is_dir():
+        logger.warning(f"Bank {bank} directory missing. No samples preloaded.")
+        set_all_lamps(LAMP_OFF)
+        return
+
+    for sample_file in bank_path.glob("*.wav"):
         try:
             # Extract the key (supports numbers and text keys like R, G, etc.)
             key_match = sample_file.stem.split("_")[0].upper()
 
             # Validate key
-            if key_match.isdigit() or key_match in {"R", "G", "RED", "BLUE"}:
+            if key_match.isdigit() or key_match in {"R", "G"}:
                 key = key_match
             else:
                 logger.warning(
@@ -402,7 +413,7 @@ def preload_soundboard_samples():
             logger.error(f"Failed to preload sample {sample_file}: {e}")
 
     set_all_lamps(LAMP_OFF)
-    logger.info("All soundboard samples preloaded.")
+    logger.info(f"Samples preloaded for bank {bank}.")
 
 
 def play_song(song_path, blocking=True):
@@ -705,9 +716,11 @@ def soundboard():
     Soundboard mode. Plays sound effects based on keypad input.
     Exits when the red button is pressed.
     """
+    global bank
+
     logger.info("Entering soundboard mode...")
 
-    preload_soundboard_samples()
+    preload_soundboard_samples(bank)
 
     timeout = time.time() + SOUNDBOARD_TIMEOUT
 
@@ -740,6 +753,27 @@ def soundboard():
                 time.sleep(KEYPAD_DEBOUNCE_DELAY - (3 * (2 * BLINK_T)))
 
             return
+
+        elif key == "RED":
+            # Switch to the next bank
+            if bank < MAX_BANK_NUMBER:
+                bank += 1
+                preload_soundboard_samples(bank)
+            else:
+                logger.info("Bank out of range")
+                play_sample("BANK_OUT_OF_RANGE")
+            timeout = time.time() + SOUNDBOARD_TIMEOUT
+
+        elif key == "BLUE":
+            # Switch to the previous bank
+            if bank > 0:
+                bank -= 1
+                preload_soundboard_samples(bank)
+            else:
+                logger.info("Bank out of range")
+                play_sample("BANK_OUT_OF_RANGE")
+            timeout = time.time() + SOUNDBOARD_TIMEOUT
+
         else:
             play_sample(key, wait=False)
             timeout = time.time() + SOUNDBOARD_TIMEOUT
