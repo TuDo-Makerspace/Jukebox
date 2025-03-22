@@ -89,8 +89,8 @@ samples = {}
 # Lamps
 ################################################################
 
-LAMP_ON = GPIO.LOW
-LAMP_OFF = GPIO.HIGH
+LAMP_ON = GPIO.HIGH
+LAMP_OFF = GPIO.LOW
 
 GPIO_TOP_LAMPS = 5
 GPIO_LR_LAMPS = 6
