@@ -75,9 +75,6 @@ SOUNDBOARD_TIMEOUT = 60  # seconds
 # Maximum Bank Number
 MAX_BANK_NUMBER = 9
 
-# Current bank number
-bank = 0
-
 # Logger
 logger = logging.getLogger(__name__)
 
@@ -370,6 +367,9 @@ def preload_soundboard_samples(bank):
         logger.warning(f"Bank {bank} directory missing. No samples preloaded.")
         set_all_lamps(LAMP_OFF)
         return
+
+    # Clear previous samples
+    samples.clear()
 
     for sample_file in bank_path.glob("*.wav"):
         try:
@@ -716,9 +716,9 @@ def soundboard():
     Soundboard mode. Plays sound effects based on keypad input.
     Exits when the red button is pressed.
     """
-    global bank
-
     logger.info("Entering soundboard mode...")
+
+    bank = 0
 
     preload_soundboard_samples(bank)
 
