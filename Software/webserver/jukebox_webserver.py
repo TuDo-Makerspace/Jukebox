@@ -50,6 +50,9 @@ MAX_TRACK_NAME_LEN = 100
 # Max track number
 MAX_TRACK_NUMBER = 999
 
+# Max bank number
+MAX_BANK_NUMBER = 9
+
 # Flask app
 app = Flask(__name__)
 
@@ -550,40 +553,51 @@ def index():
 
 
 @app.route("/samples")
-def samples():
+def samples_redirect():
     """
-    Serve the page for the samples list (0-9, R, G, RED, BLUE).
+    Redirect to the samples page to bank 0.
     """
-    samples = {}
-    for filename in os.listdir(JUKEBOX_SAMPLES_PATH):
-        if filename.lower().endswith(".wav"):
-            sample_key = filename.split("_")[
-                0
-            ].upper()  # Extract key (e.g., "R", "RED", "3")
-            sample_name = filename.split("_", 1)[1] if "_" in filename else filename
-            sample_name = os.path.splitext(sample_name)[0]  # Remove extension
+    return redirect(url_for("samples_for_bank", bank=0))
 
-            # If sample name exceeds the maximum length, truncate it
-            if len(sample_name) > MAX_TRACK_NAME_LEN:
-                sample_name = sample_name[:MAX_TRACK_NAME_LEN] + "..."
+
+@app.route("/samples/<int:bank>")
+def samples_for_bank(bank):
+    # 1) Validate bank
+    if bank < 0 or bank > MAX_BANK_NUMBER:
+        # Redirect to bank MAX_BANK_NUMBER
+        return redirect(url_for("samples_for_bank", bank=MAX_BANK_NUMBER))
+
+    bank_dir = os.path.join(JUKEBOX_SAMPLES_PATH, str(bank))
+
+    # 2) Make sure bank folder exists. If you want it automatically created, do:
+    if not os.path.isdir(bank_dir):
+        os.makedirs(bank_dir, exist_ok=True)
+
+    # 3) Gather existing .wav files
+    samples = {}
+    for filename in os.listdir(bank_dir):
+        if filename.lower().endswith(".wav"):
+            # Example naming: "3_mySample.wav"
+            sample_key = filename.split("_")[0].upper()
+            sample_name = filename.split("_", 1)[1] if "_" in filename else filename
+            sample_name = os.path.splitext(sample_name)[0]
 
             samples[sample_key] = sample_name
 
-    # Define all possible keys
+    # Define the valid keys
     valid_keys = [str(i) for i in range(10)] + ["R", "G", "RED", "BLUE"]
 
-    # Build the slots list
     slots = []
     for key in valid_keys:
         slots.append(
-            {
-                "key": key,
-                "name": samples.get(key, ""),  # Empty string if no sample uploaded
-                "is_empty": key not in samples,
-            }
+            {"key": key, "name": samples.get(key, ""), "is_empty": key not in samples}
         )
 
-    return render_template("samples.html", slots=slots)
+    # 4) Render your existing soundboard HTML template,
+    #    but pass along the bank number and slots
+    return render_template(
+        "samples.html", slots=slots, bank=bank, max_bank=MAX_BANK_NUMBER
+    )
 
 
 @app.route("/upload/<int:track_number>", methods=["POST"])

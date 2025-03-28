@@ -42,6 +42,26 @@
         </div>
     </div>
 
+    <div class="d-flex justify-content-center align-items-center mb-3 gap-4 mt-4">
+        <!-- "Previous Bank" button -->
+        {% if bank > 0 %}
+        <a class="btn btn-sm btn-primary prevnext" href="{{ url_for('samples_for_bank', bank=bank - 1) }}">←
+
+        </a>
+        {% else %}
+        <button class="btn btn-sm btn-primary prevnext" disabled>←</button>
+        {% endif %}
+
+        <span style="font-size: 1.5em">{{ bank }}</span>
+
+        <!-- "Next Bank" button -->
+        {% if bank < max_bank %} <a class="btn btn-sm btn-primary prevnext"
+            href="{{ url_for('samples_for_bank', bank=bank + 1) }}">→</a>
+            {% else %}
+            <button class="btn btn-sm btn-primary prevnext" disabled>→</button>
+            {% endif %}
+    </div>
+
     <!-- Upload Modal -->
     <div class="modal fade" id="uploadModal" tabindex="-1" aria-labelledby="uploadModalLabel" aria-hidden="true">
         <div class="modal-dialog">
