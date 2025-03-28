@@ -592,8 +592,8 @@ def prompt_keypad_input():
 
         # Check if the state matches a button in the lookup table
         if read:
-            play_asset("PRESS", wait=False)
             logger.info(f"Keypad input: {read}")
+            play_asset("PRESS", wait=False)
             debounce_and_await_release()
             return read
 
@@ -695,6 +695,7 @@ def idle(start_with_animation=True):
         key = read_keypad_input()
         if key:
             logger.info(f"Key pressed: {key}")
+            play_asset("PRESS", wait=False)
             debounce_and_await_release()
         return key
 
