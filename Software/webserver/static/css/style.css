@@ -171,4 +171,9 @@ body {
 
 .prevnext {
     font-size: 1.5em;
+    color: var()
+}
+
+.prevnext:disabled {
+    opacity: 0;
 }
