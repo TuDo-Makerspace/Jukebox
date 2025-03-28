@@ -844,6 +844,9 @@ def upload_sample(bank, sample_key):
         logger.error("Bank out of range.")
         return jsonify({"error": "Bank out of range."}), 400
 
+    bank_dir = os.path.join(JUKEBOX_SAMPLES_PATH, str(bank))
+    os.makedirs(bank_dir, exist_ok=True)
+
     # Valid keys include "0-9", "R", "G"
     valid_keys = [str(i) for i in range(10)] + ["R", "G"]
     if sample_key.upper() not in valid_keys:
@@ -974,9 +977,6 @@ def upload_sample(bank, sample_key):
         else:
             # Use the original filename as the sample name
             new_filename = f"{sample_key}_{os.path.basename(tmp_file_path)}"
-
-        bank_dir = os.path.join(JUKEBOX_SAMPLES_PATH, str(bank))
-        os.makedirs(bank_dir, exist_ok=True)
 
         new_file_path = os.path.join(bank_dir, new_filename)
 
