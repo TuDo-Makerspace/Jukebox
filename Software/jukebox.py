@@ -63,8 +63,8 @@ ASSET_FILES = {
     "LOAD": "Load.wav",
     "MISSING": "SampleMissing.wav",
     "BANK_OUT_OF_RANGE": "BankOutOfRange.wav",
+    "PRESS": "Press.wav",
 }
-
 
 # Interval at which the idle animation is triggered
 IDLE_ANIMATION_INTERVAL = 30  # seconds
@@ -458,7 +458,7 @@ def play_sample(key, wait=True):
         logger.error(f"Failed to play sample {key}: {e}")
 
 
-def play_asset(key):
+def play_asset(key, wait=True):
     """
     Play an asset sample. If the asset is not found, log a warning.
     """
@@ -471,7 +471,8 @@ def play_asset(key):
     logger.info(f"Playing asset sample: {key}")
     try:
         sd.play(audio_data, params["framerate"])
-        sd.wait()
+        if wait:
+            sd.wait()
     except Exception as e:
         logger.error(f"Failed to play asset sample {key}: {e}")
 
@@ -591,6 +592,7 @@ def prompt_keypad_input():
 
         # Check if the state matches a button in the lookup table
         if read:
+            play_asset("PRESS", wait=False)
             logger.info(f"Keypad input: {read}")
             debounce_and_await_release()
             return read
