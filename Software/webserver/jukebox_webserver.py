@@ -585,7 +585,7 @@ def samples_for_bank(bank):
             samples[sample_key] = sample_name
 
     # Define the valid keys
-    valid_keys = [str(i) for i in range(10)] + ["R", "G", "RED", "BLUE"]
+    valid_keys = [str(i) for i in range(10)] + ["R", "G"]
 
     slots = []
     for key in valid_keys:
@@ -844,8 +844,8 @@ def upload_sample(bank, sample_key):
         logger.error("Bank out of range.")
         return jsonify({"error": "Bank out of range."}), 400
 
-    # Valid keys include "0-9", "R", "G", "RED", "BLUE"
-    valid_keys = [str(i) for i in range(10)] + ["R", "G", "RED", "BLUE"]
+    # Valid keys include "0-9", "R", "G"
+    valid_keys = [str(i) for i in range(10)] + ["R", "G"]
     if sample_key.upper() not in valid_keys:
         logger.error(f"Invalid sample key: {sample_key}")
         return jsonify({"error": "Invalid sample key."}), 400
