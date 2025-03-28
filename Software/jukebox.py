@@ -449,6 +449,7 @@ def play_sample(key, wait=True):
     if key not in samples:
         logger.info(f"No sample found for key {key}.")
         key = "MISSING"
+        return
 
     params, audio_data = samples[key]
     try:
