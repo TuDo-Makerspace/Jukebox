@@ -757,6 +757,7 @@ def soundboard():
             continue
 
         logger.info(f"Key pressed: {key}")
+        play_asset("PRESS", wait=False)
 
         if key == "YELLOW":
             logger.info("Exiting soundboard mode...")
