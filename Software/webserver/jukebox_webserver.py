@@ -833,12 +833,16 @@ def upload(track_number):
     return jsonify({"error": "No file or link provided."}), 400
 
 
-@app.route("/upload_sample/<sample_key>", methods=["POST"])
-def upload_sample(sample_key):
+@app.route("/upload_sample/<int:bank>/<sample_key>", methods=["POST"])
+def upload_sample(bank, sample_key):
     """
     Handle file upload for a specific sample.
     """
     logger.info(f"Received upload request for sample {sample_key}")
+
+    if bank < 0 or bank > MAX_BANK_NUMBER:
+        logger.error("Bank out of range.")
+        return jsonify({"error": "Bank out of range."}), 400
 
     # Valid keys include "0-9", "R", "G", "RED", "BLUE"
     valid_keys = [str(i) for i in range(10)] + ["R", "G", "RED", "BLUE"]
@@ -971,15 +975,18 @@ def upload_sample(sample_key):
             # Use the original filename as the sample name
             new_filename = f"{sample_key}_{os.path.basename(tmp_file_path)}"
 
-        new_file_path = os.path.join(JUKEBOX_SAMPLES_PATH, new_filename)
+        bank_dir = os.path.join(JUKEBOX_SAMPLES_PATH, str(bank))
+        os.makedirs(bank_dir, exist_ok=True)
+
+        new_file_path = os.path.join(bank_dir, new_filename)
 
         # Remove old file for the same sample number
-        for existing_file in os.listdir(JUKEBOX_SAMPLES_PATH):
+        for existing_file in os.listdir(bank_dir):
             if existing_file.startswith(f"{sample_key}_"):
-                os.remove(os.path.join(JUKEBOX_SAMPLES_PATH, existing_file))
+                os.remove(os.path.join(bank_dir, existing_file))
                 logger.info(f"Removed existing sample: {existing_file}")
 
-        # Move the file to the JUKEBOX_SAMPLES_PATH
+        # Move the file to the bank directory
         shutil.move(tmp_file_path, new_file_path)
         logger.info(f"File moved to {new_file_path}")
 
@@ -1089,26 +1096,24 @@ def upload_sample(sample_key):
                 400,
             )
 
-        # Move the file to the JUKEBOX_SAMPLES_PATH
+        # Move the file to the bank directory
         try:
             # Remove old file for the same sample number
-            for existing_file in os.listdir(JUKEBOX_SAMPLES_PATH):
+            for existing_file in os.listdir(bank_dir):
                 if existing_file.startswith(f"{sample_key}_"):
-                    os.remove(os.path.join(JUKEBOX_SAMPLES_PATH, existing_file))
+                    os.remove(os.path.join(bank_dir, existing_file))
                     logger.info(f"Removed existing sample: {existing_file}")
 
             # Add sample number and (if provided) custom name to the filename
             if custom_name:
-                final_out = os.path.join(
-                    JUKEBOX_SAMPLES_PATH, f"{sample_key}_{custom_name}.wav"
-                )
+                final_out = os.path.join(bank_dir, f"{sample_key}_{custom_name}.wav")
             else:
                 # Use the original filename as the sample name
                 final_out = os.path.join(
-                    JUKEBOX_SAMPLES_PATH, f"{sample_key}_{os.path.basename(out)}"
+                    bank_dir, f"{sample_key}_{os.path.basename(out)}"
                 )
 
-            # Move the file to the JUKEBOX_SAMPLES_PATH
+            # Move the file to the bank_dir
             shutil.move(
                 tmp_out,
                 final_out,
@@ -1152,16 +1157,26 @@ def delete(track_number):
     return jsonify({"error": "Track not found."}), 404
 
 
-@app.route("/delete_sample/<sample_key>", methods=["POST"])
-def delete_sample(sample_key):
+@app.route("/delete_sample/<int:bank>/<sample_key>", methods=["POST"])
+def delete_sample(bank, sample_key):
     """
     Delete a sample from the Jukebox.
     """
-    logger.info(f"Deleting sample {sample_key}")
+    if bank < 0 or bank > MAX_BANK_NUMBER:
+        logger.error("Bank out of range.")
+        return jsonify({"error": "Bank out of range."}), 400
 
-    for filename in os.listdir(JUKEBOX_SAMPLES_PATH):
+    logger.info(f"Deleting sample {sample_key} from bank {bank}")
+
+    bank_dir = os.path.join(JUKEBOX_SAMPLES_PATH, str(bank))
+
+    if not os.path.isdir(bank_dir):
+        logger.error(f"Bank {bank} does not exist.")
+        return jsonify({"error": "Bank does not exist."}), 404
+
+    for filename in os.listdir(bank_dir):
         if filename.startswith(f"{sample_key}_"):
-            os.remove(os.path.join(JUKEBOX_SAMPLES_PATH, filename))
+            os.remove(os.path.join(bank_dir, filename))
             logger.info(f"Sample {sample_key} deleted successfully.")
             return jsonify({"success": "Sample deleted successfully!"}), 200
 
