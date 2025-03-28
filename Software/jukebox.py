@@ -55,9 +55,9 @@ JUKEBOX_SONGS_PATH = os.getenv("JUKEBOX_SONGS_PATH")
 JUKEBOX_SOUNDBOARD_PATH = os.getenv("JUKEBOX_SOUNDBOARD_PATH")
 
 # Assets directory
-ASSETS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets")
+JUKEBOX_ASSETS_PATH = os.getenv("JUKEBOX_ASSETS_PATH")
 
-# Asset files and their corresponding keys (See samples dict below)
+# Asset files and their corresponding keys (S<ee samples dict below)
 ASSET_FILES = {
     "TRACK_NOT_FOUND": "TrackMissing.wav",
     "LOAD": "Load.wav",
@@ -78,9 +78,11 @@ MAX_BANK_NUMBER = 9
 # Logger
 logger = logging.getLogger(__name__)
 
-# Dictionary to store preloaded samples
-# Samples are pre-loaded for faster access during playback
-samples = {}
+# Dictionary for permanent asset samples
+asset_samples = {}
+
+# Dictionary for the current bank's soundboard samples
+soundboard_samples = {}
 
 ################################################################
 # Lamps
@@ -307,15 +309,15 @@ def bpm_tag(file_path):
 
 def preload_assets():
     """
-    Preload all asset audio files into memory for faster access during playback.
-    Includes TrackMissing.wav, Load.wav, and SampleMissing.wav.
+    Preload all *asset* audio files (TRACK_NOT_FOUND, LOAD, MISSING, etc.)
+    into memory for faster access during playback.
     """
-    global samples
+    global asset_samples
 
     logger.info("Preloading asset samples...")
 
     for key, filename in ASSET_FILES.items():
-        asset_path = Path(ASSETS_PATH) / filename
+        asset_path = Path(JUKEBOX_ASSETS_PATH) / filename
 
         if asset_path.exists():
             try:
@@ -334,11 +336,10 @@ def preload_assets():
 
                     frames = wf.readframes(wf.getnframes())
                     audio_data = np.frombuffer(frames, dtype=np.int16)
-
                     if params["channels"] > 1:
                         audio_data = np.reshape(audio_data, (-1, params["channels"]))
 
-                    samples[key] = (params, audio_data)
+                    asset_samples[key] = (params, audio_data)
                     logger.info(f"Preloaded asset sample {key} from {asset_path}.")
             except Exception as e:
                 logger.error(
@@ -352,32 +353,29 @@ def preload_assets():
 
 def preload_soundboard_samples(bank):
     """
-    Preloads all soundboard samples into memory for faster playback.
-    Supports numeric keys and special keys like 'R', 'G', 'RED', and 'BLUE'.
+    Preloads all *soundboard* samples (0-9, R, G, etc.) for a specific bank.
     """
-    global samples
+    global soundboard_samples
 
     logger.info(f"Preloading samples for bank {bank}...")
 
     set_all_lamps(LAMP_ON)
 
     bank_path = Path(JUKEBOX_SOUNDBOARD_PATH) / str(bank)
-
     if not bank_path.is_dir():
         logger.warning(f"Bank {bank} directory missing. No samples preloaded.")
         set_all_lamps(LAMP_OFF)
         return
 
-    # Clear previous samples
-    samples.clear()
+    # Clear only the old *soundboard* samples, leave asset_samples alone
+    soundboard_samples.clear()
 
+    # Load .wav files in bank folder
     for sample_file in bank_path.glob("*.wav"):
         try:
-            # Extract the key (supports numbers and text keys like R, G, etc.)
             key_match = sample_file.stem.split("_")[0].upper()
-
-            # Validate key
-            if key_match.isdigit() or key_match in {"R", "G"}:
+            # We only treat digits or R/G as valid keys here
+            if key_match.isdigit() or key_match in {"R", "G", "RED", "BLUE"}:
                 key = key_match
             else:
                 logger.warning(
@@ -385,7 +383,6 @@ def preload_soundboard_samples(bank):
                 )
                 continue
 
-            # Load the sample
             with wave.open(str(sample_file), "rb") as wf:
                 params = {
                     "channels": wf.getnchannels(),
@@ -401,13 +398,10 @@ def preload_soundboard_samples(bank):
 
                 frames = wf.readframes(wf.getnframes())
                 audio_data = np.frombuffer(frames, dtype=np.int16)
-
                 if params["channels"] > 1:
                     audio_data = np.reshape(audio_data, (-1, params["channels"]))
 
-                # IMPORTANT: The key must be a string since the keypad inputs are defined as strings
-                samples[key] = (params, audio_data)
-
+                soundboard_samples[key] = (params, audio_data)
                 logger.info(f"Preloaded sample {key} from {sample_file}.")
         except Exception as e:
             logger.error(f"Failed to preload sample {sample_file}: {e}")
@@ -441,23 +435,45 @@ def play_song(song_path, blocking=True):
 
 def play_sample(key, wait=True):
     """
-    Play a soundboard sample based on the input key.
-
-    Args:
-        key (str or int): The sample key to play.
+    Play a sample. If the sample is not found in the current
+    soundboard bank, play the "MISSING" sample from the assets.
     """
-    if key not in samples:
-        logger.info(f"No sample found for key {key}.")
-        key = "MISSING"
-        return
+    # 1) Check if it's in the current soundboard bank
+    if key in soundboard_samples:
+        params, audio_data = soundboard_samples[key]
+    else:
+        if "MISSING" in asset_samples:
+            params, audio_data = asset_samples["MISSING"]
+            key = "MISSING"
+        else:
+            logger.warning("No 'MISSING' sample in assets, skipping playback.")
+            return
 
-    params, audio_data = samples[key]
+    logger.info(f"Playing sample key: {key}")
     try:
         sd.play(audio_data, params["framerate"])
         if wait:
             sd.wait()
     except Exception as e:
         logger.error(f"Failed to play sample {key}: {e}")
+
+
+def play_asset(key):
+    """
+    Play an asset sample. If the asset is not found, log a warning.
+    """
+    if key in asset_samples:
+        params, audio_data = asset_samples[key]
+    else:
+        logger.warning(f"Asset sample '{key}' not found.")
+        return
+
+    logger.info(f"Playing asset sample: {key}")
+    try:
+        sd.play(audio_data, params["framerate"])
+        sd.wait()
+    except Exception as e:
+        logger.error(f"Failed to play asset sample {key}: {e}")
 
 
 def set_all_lamps(state):
@@ -598,7 +614,7 @@ def play(number):
         print(f"No song found for number {number} in {JUKEBOX_SONGS_PATH}")
 
         set_all_lamps(LAMP_ON)
-        play_sample("TRACK_NOT_FOUND")
+        play_asset("TRACK_NOT_FOUND")
         set_all_lamps(LAMP_OFF)
 
         return False
@@ -610,7 +626,7 @@ def play(number):
     logger.info(f"Playing load sample and analyzing BPM...")
 
     # Play the load sample and analyze the BPM at the same time
-    load_sample_thread = threading.Thread(target=play_sample, args=("LOAD",))
+    load_sample_thread = threading.Thread(target=play_asset, args=("LOAD",))
     load_sample_thread.start()
 
     bpm = bpm_tag(spath)
@@ -762,7 +778,7 @@ def soundboard():
                 preload_soundboard_samples(bank)
             else:
                 logger.info("Bank out of range")
-                play_sample("BANK_OUT_OF_RANGE")
+                play_asset("BANK_OUT_OF_RANGE")
             timeout = time.time() + SOUNDBOARD_TIMEOUT
 
         elif key == "BLUE":
@@ -772,7 +788,7 @@ def soundboard():
                 preload_soundboard_samples(bank)
             else:
                 logger.info("Bank out of range")
-                play_sample("BANK_OUT_OF_RANGE")
+                play_asset("BANK_OUT_OF_RANGE")
             timeout = time.time() + SOUNDBOARD_TIMEOUT
 
         else:
