@@ -757,9 +757,9 @@ def soundboard():
             continue
 
         logger.info(f"Key pressed: {key}")
-        play_asset("PRESS", wait=False)
 
         if key == "YELLOW":
+            play_asset("PRESS", wait=False)
             logger.info("Exiting soundboard mode...")
             # Flash all lights to indicate exit
             BLINK_T = 0.15
@@ -776,6 +776,8 @@ def soundboard():
             return
 
         elif key == "RED":
+            play_asset("PRESS", wait=False)
+
             # Switch to the next bank
             if bank < MAX_BANK_NUMBER:
                 bank += 1
@@ -786,6 +788,8 @@ def soundboard():
             timeout = time.time() + SOUNDBOARD_TIMEOUT
 
         elif key == "BLUE":
+            play_asset("PRESS", wait=False)
+
             # Switch to the previous bank
             if bank > 0:
                 bank -= 1
