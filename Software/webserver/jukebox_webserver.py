@@ -21,6 +21,7 @@ Dependencies:
     - flask
     - yt-dlp
     - spotdl
+    - sox
 
 Contributors:
 - Patrick Pedersen <ctx.xda@gmail.com>
@@ -52,6 +53,10 @@ MAX_TRACK_NUMBER = 999
 
 # Max bank number
 MAX_BANK_NUMBER = 9
+
+# Sox
+SOX_MIN_SILENCE_DURATION = 0.1  # seconds
+SOX_MIN_SILENCE_THRESHOLD = 1  # percentage
 
 # Flask app
 app = Flask(__name__)
@@ -194,6 +199,25 @@ def mp3_to_wav(file_path):
     )
 
     return result
+
+
+def trim_silent_start(wav, min_dur, threshold):
+    """
+    Trim silence from the beginning of a WAV file using sox.
+    """
+    logger.info("Trimming silence from the beginning with sox...")
+    trimmed_file = os.path.splitext(wav)[0] + "_trimmed.wav"
+    trim_proc = subprocess.run(
+        ["sox", wav, trimmed_file, "silence", "1", f"{min_dur}", f"{threshold}%"],
+        capture_output=True,
+        text=True,
+    )
+    if trim_proc.returncode != 0:
+        return False
+    else:
+        os.remove(wav)
+        os.rename(trimmed_file, wav)
+        return True
 
 
 def is_yt_link(link):
@@ -955,20 +979,10 @@ def upload_sample(bank, sample_key):
                 logger.error(f"Failed to convert WAV file: {str(e)}")
                 return jsonify({"error": f"Failed to convert WAV file: {str(e)}"}), 500
 
-        logger.info("Trimming silence from the beginning with sox (file upload).")
-        trimmed_file = os.path.splitext(tmp_file_path)[0] + "_trimmed.wav"
-        trim_proc = subprocess.run(
-            ["sox", tmp_file_path, trimmed_file, "silence", "1", "0.1", "1%"],
-            capture_output=True,
-            text=True,
-        )
-        if trim_proc.returncode != 0:
-            logger.warning(f"sox failed to remove silence: {trim_proc.stderr}")
-            # We won't fail the request if sox fails; proceed with original
-        else:
-            os.remove(tmp_file_path)
-            os.rename(trimmed_file, tmp_file_path)
+        if trim_silent_start(tmp_file_path, 0.1, 1):
             logger.info("Silence from the beginning successfully removed!")
+        else:
+            logger.warning("sox failed to remove silence.")
 
         # Check if file size exceeds MAX_SAMPLE_SIZE
         if os.path.getsize(tmp_file_path) > MAX_SAMPLE_SIZE:
@@ -1095,20 +1109,10 @@ def upload_sample(bank, sample_key):
         tmp_out = os.path.join(temp_dir, out)
         logger.info(f"Download temporarily saved to {tmp_out}")
 
-        logger.info("Trimming silence from the beginning with sox (link).")
-        trimmed_file = os.path.splitext(tmp_out)[0] + "_trimmed.wav"
-        trim_proc = subprocess.run(
-            ["sox", tmp_out, trimmed_file, "silence", "1", "0.1", "1%"],
-            capture_output=True,
-            text=True,
-        )
-        if trim_proc.returncode != 0:
-            logger.warning(f"sox failed to remove silence: {trim_proc.stderr}")
-            # We'll proceed with the untrimmed file if sox fails
-        else:
-            os.remove(tmp_out)
-            os.rename(trimmed_file, tmp_out)
+        if trim_silent_start(tmp_out, 0.1, 1):
             logger.info("Silence from the beginning successfully removed!")
+        else:
+            logger.warning("sox failed to remove silence.")
 
         # Check if file size exceeds MAX_SAMPLE_SIZE
         if os.path.getsize(tmp_out) > MAX_SAMPLE_SIZE:
