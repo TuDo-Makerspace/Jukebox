@@ -1,6 +1,6 @@
 <mxfile host="Electron" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/26.2.2 Chrome/134.0.6998.178 Electron/35.1.2 Safari/537.36" version="26.2.2">
   <diagram name="Page-1" id="W8MKzIHO_7QyPUXCPeFz">
-    <mxGraphModel dx="2278" dy="1943" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+    <mxGraphModel dx="1530" dy="1501" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -248,7 +248,7 @@
             <mxPoint as="offset" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="YZWkK0QSVy-SKpIgM2Q_-57" value="&lt;font style=&quot;font-size: 10px;&quot;&gt;Bank &lt;br&gt;&amp;lt; 10&lt;/font&gt;" style="rhombus;whiteSpace=wrap;html=1;movable=1;resizable=1;rotatable=1;deletable=1;editable=1;locked=0;connectable=1;" parent="1" vertex="1">
+        <mxCell id="YZWkK0QSVy-SKpIgM2Q_-57" value="&lt;font style=&quot;font-size: 10px;&quot;&gt;Bank &lt;br&gt;&amp;lt; 9&lt;/font&gt;" style="rhombus;whiteSpace=wrap;html=1;movable=1;resizable=1;rotatable=1;deletable=1;editable=1;locked=0;connectable=1;" parent="1" vertex="1">
           <mxGeometry x="-35" y="404.34" width="50" height="50" as="geometry" />
         </mxCell>
         <mxCell id="YZWkK0QSVy-SKpIgM2Q_-62" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=1;exitDx=0;exitDy=0;movable=1;resizable=1;rotatable=1;deletable=1;editable=1;locked=0;connectable=1;" parent="1" source="YZWkK0QSVy-SKpIgM2Q_-57" edge="1">
@@ -284,7 +284,7 @@
             <mxPoint as="offset" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="YZWkK0QSVy-SKpIgM2Q_-65" value="&lt;font style=&quot;font-size: 10px;&quot;&gt;Bank &lt;br&gt;&amp;gt; 0&lt;/font&gt;" style="rhombus;whiteSpace=wrap;html=1;movable=1;resizable=1;rotatable=1;deletable=1;editable=1;locked=0;connectable=1;" parent="1" vertex="1">
+        <mxCell id="YZWkK0QSVy-SKpIgM2Q_-65" value="&lt;font style=&quot;font-size: 10px;&quot;&gt;Bank &lt;br&gt;&amp;gt; 1&lt;/font&gt;" style="rhombus;whiteSpace=wrap;html=1;movable=1;resizable=1;rotatable=1;deletable=1;editable=1;locked=0;connectable=1;" parent="1" vertex="1">
           <mxGeometry x="-35" y="609.34" width="50" height="50" as="geometry" />
         </mxCell>
         <mxCell id="YZWkK0QSVy-SKpIgM2Q_-69" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;movable=1;resizable=1;rotatable=1;deletable=1;editable=1;locked=0;connectable=1;" parent="1" source="YZWkK0QSVy-SKpIgM2Q_-67" edge="1">
