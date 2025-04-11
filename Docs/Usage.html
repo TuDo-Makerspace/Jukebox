@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jukebox Documentation</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --secondary: #3498db;
+            --accent: #e74c3c;
+            --sidebar-width: 250px;
+            --gap: 30px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            display: grid;
+            grid-template-columns: var(--sidebar-width) 1fr;
+            min-height: 100vh;
+        }
+
+        /* Sidebar Navigation */
+        .sidebar {
+            background-color: var(--primary);
+            color: white;
+            padding: 20px;
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            overflow-y: auto;
+        }
+
+        .sidebar h1 {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--secondary);
+        }
+
+        .sidebar nav ul {
+            list-style: none;
+        }
+
+        .sidebar nav li {
+            margin-bottom: 10px;
+        }
+
+        .sidebar nav a {
+            color: white;
+            text-decoration: none;
+            display: block;
+            padding: 8px 10px;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+
+        .sidebar nav a:hover {
+            background-color: var(--secondary);
+        }
+
+        /* Main Content */
+        .main-content {
+            padding: 40px var(--gap);
+            max-width: 800px;
+        }
+
+        h2 {
+            color: var(--primary);
+            margin: 30px 0 15px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid var(--secondary);
+        }
+
+        img {
+            max-width: 100%;
+            height: auto;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 5px;
+            display: block;
+            margin: 15px auto;
+        }
+
+        .note {
+            background-color: #f8f9fa;
+            border-left: 4px solid var(--secondary);
+            padding: 12px 15px;
+            margin: 15px 0;
+            border-radius: 0 4px 4px 0;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 3px;
+            font-weight: bold;
+            margin: 2px;
+            font-family: monospace;
+        }
+
+        .btn-red {
+            background-color: #e74c3c;
+            color: white;
+        }
+
+        .btn-blue {
+            background-color: #3498db;
+            color: white;
+        }
+
+        .btn-yellow {
+            background-color: #f39c12;
+            color: white;
+        }
+
+        .btn-green {
+            background-color: #2ecc71;
+            color: white;
+        }
+
+        .btn-gray {
+            background-color: #95a5a6;
+            color: white;
+        }
+
+        ol,
+        ul {
+            padding-left: 20px;
+            margin: 10px 0;
+        }
+
+        li {
+            margin-bottom: 8px;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            body {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                position: static;
+                height: auto;
+                width: 100%;
+            }
+
+            .main-content {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <aside class="sidebar">
+        <h1>Jukebox Usage</h1>
+        <nav>
+            <ul>
+                <li><a href="#flowchart">Flowchart</a></li>
+                <li><a href="#powering-on-the-jukebox">Powering On</a></li>
+                <li><a href="#volume-control">Volume Control</a></li>
+                <li><a href="#selecting-a-song">Selecting a Song</a></li>
+                <li><a href="#playing-a-random-song">Random Song</a></li>
+                <li><a href="#aborting-a-song">Aborting a Song</a></li>
+                <li><a href="#soundboard-mode">Soundboard Mode</a></li>
+                <li><a href="#uploading-songs">Uploading Songs</a></li>
+                <li><a href="#adding-samples">Adding Samples</a></li>
+            </ul>
+        </nav>
+    </aside>
+
+    <main class="main-content">
+        <section id="flowchart">
+            <h2>Flowchart</h2>
+            <a href="./Diag.png" target="_blank" class="image-container">
+                <img src="./Diag.png" alt="Jukebox Flowchart">
+            </a>
+            <p>The flowchart is simplified and does not reflect all the details of the code. It serves as a
+                high-level overview of the jukebox's functionality.</p>
+        </section>
+
+        <section id="powering-on-the-jukebox">
+            <h2>Powering on the Jukebox</h2>
+            <p>To power the jukebox on or off, flip the switch located on the power strip at the back-left side.</p>
+            <div class="note">
+                <p><strong>Note:</strong> It is normal to hear a loud "pop" sound when flipping the switch.</p>
+            </div>
+            <a href="./Switch.jpg" target="_blank" class="image-container">
+                <img src="./Switch.jpg" alt="Power Switch">
+            </a>
+            <p>Once powered on, the jukebox will require a short period to boot. It is ready to use when the lights
+                begin flashing.</p>
+        </section>
+
+        <section id="volume-control">
+            <h2>Volume Control</h2>
+            <p>At boot, the jukebox will start at its lowest volume. To adjust the volume, use the volume buttons
+                located at the back-right side.</p>
+            <a href="./Vol.jpg" target="_blank" class="image-container">
+                <img src="./Vol.jpg" alt="Volume Control">
+            </a>
+        </section>
+
+        <section id="selecting-a-song">
+            <h2>Selecting a Song</h2>
+            <p>Enter the song number using the keypad. To confirm your selection, press the <span
+                    class="btn btn-gray">G</span> key. The jukebox will begin playing your chosen song.</p>
+            <p>To cancel your current entry, press the <span class="btn btn-gray">R</span> key.
+            <div class="note">
+                <strong>Note:</strong>
+                Your input will also automatically clear if no keys are pressed for 5 seconds.</p>
+            </div>
+        </section>
+
+        <section id="playing-a-random-song">
+            <h2>Playing a Random Song</h2>
+            <p>To play a random song, press the <span class="btn btn-blue">🔵 BLUE</span> key. The jukebox will select a
+                random song from its library.</p>
+        </section>
+
+        <section id="aborting-a-song">
+            <h2>Aborting a Song</h2>
+            <p>To stop a song currently playing, press the <span class="btn btn-red">🔴 RED</span> key. This will
+                immediately return you to the main menu.</p>
+        </section>
+
+        <section id="soundboard-mode">
+            <h2>Soundboard Mode</h2>
+            <p>To activate soundboard mode, press the <span class="btn btn-yellow">🟡 YELLOW</span> key. In this mode,
+                the
+                keypad functions as a soundboard.</p>
+            <p>The jukebox has 10 soundboard banks. Upon entering soundboard mode, Bank 1 is automatically selected.
+                Switch between banks using:</p>
+            <ul>
+                <li><span class="btn btn-red">🔴 RED</span> - Next bank</li>
+                <li><span class="btn btn-blue">🔵 BLUE</span> - Previous bank</li>
+            </ul>
+            <p>To exit soundboard mode, press the <span class="btn btn-yellow">🟡 YELLOW</span> key again.
+                Alternatively,
+                soundboard mode will automatically exit after 60 seconds of inactivity.</p>
+        </section>
+
+        <section id="uploading-songs">
+            <h2>Uploading Songs</h2>
+            <p>To upload songs to the jukebox:</p>
+            <ol>
+                <li>Connect to the TuDo WiFi</li>
+                <li>Open <a href="http://jukebox.local" target="_blank">jukebox.local</a> in your web browser</li>
+                <li>Select your desired track number</li>
+                <li>Upload your song either via file or URL (YouTube, Spotify, SoundCloud etc.)</li>
+            </ol>
+        </section>
+
+        <section id="adding-samples">
+            <h2>Adding Samples</h2>
+            <div class="note">
+                <p>This shall remain a secret ;)</p>
+            </div>
+        </section>
+    </main>
+</body>
+
+</html>
