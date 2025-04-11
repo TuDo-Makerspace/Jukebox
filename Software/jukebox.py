@@ -28,6 +28,7 @@ Contributors:
 - Patrick Pedersen <ctx.xda@gmail.com>
 """
 
+import enum
 import re
 import os
 import glob
@@ -601,6 +602,12 @@ def prompt_keypad_input():
         time.sleep(0.05)
 
 
+class PlayReturn(enum):
+    TRACK_NOT_FOUND = 1
+    ABORTED = 2
+    FINISHED = 3
+
+
 def play(number):
     """
     Play a song based on the input number.
@@ -619,7 +626,7 @@ def play(number):
         play_asset("TRACK_NOT_FOUND")
         set_all_lamps(LAMP_OFF)
 
-        return False
+        return PlayReturn.TRACK_NOT_FOUND
 
     logger.info(f"Found song: {spath}")
 
@@ -675,7 +682,10 @@ def play(number):
 
     logger.info("Done playing song.")
 
-    return True
+    if aborted:
+        return PlayReturn.ABORTED
+    else:
+        return PlayReturn.FINISHED
 
 
 def idle(start_with_animation=True):
@@ -854,7 +864,10 @@ def run():
             # Random select
             elif key == "BLUE":
                 logger.info('"Random Select" button pressed')
-                play(random.choice(reserved_track_numbers()))
+                while (
+                    play(random.choice(reserved_track_numbers())) == PlayReturn.FINISHED
+                ):
+                    pass
                 break
 
             # Soundboard Mode
