@@ -602,7 +602,7 @@ def prompt_keypad_input():
         time.sleep(0.05)
 
 
-class PlayReturn(enum):
+class PlayReturn(enum.Enum):
     TRACK_NOT_FOUND = 1
     ABORTED = 2
     FINISHED = 3
@@ -861,9 +861,9 @@ def run():
                 play(int(input))
                 break
 
-            # Random select
+            # Shuffle
             elif key == "BLUE":
-                logger.info('"Random Select" button pressed')
+                logger.info('"Shuffle" button pressed')
                 while (
                     play(random.choice(reserved_track_numbers())) == PlayReturn.FINISHED
                 ):
