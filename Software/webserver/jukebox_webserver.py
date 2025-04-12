@@ -22,6 +22,7 @@ Dependencies:
     - yt-dlp
     - spotdl
     - sox
+    - ffmpeg
 
 Contributors:
 - Patrick Pedersen <ctx.xda@gmail.com>
@@ -219,6 +220,60 @@ def trim_silent_start(wav, min_dur, threshold):
         os.rename(trimmed_file, wav)
         return True
 
+def normalize_lufs_ffmpeg(
+    file_path,
+    target_lufs=-14.0,
+    true_peak=-1.0,
+    loudness_range=11.0
+):
+    """
+    Normalizes an audio file to a given LUFS level using FFmpeg's loudnorm filter.
+    The file is replaced in-place with the normalized version.
+
+    Args:
+        file_path (str): Path to the audio file (should be MP3 or WAV).
+        target_lufs (float): Integrated loudness target in LUFS (e.g. -14).
+        true_peak (float): True Peak limit in dB (e.g. -1.0).
+        loudness_range (float): Loudness range target (LRA).
+
+    Returns:
+        bool: True if successful, False otherwise.
+    """
+    import os
+    import subprocess
+
+    # Decide on an output filename
+    base, ext = os.path.splitext(file_path)
+    normalized_file = base + "_normalized" + ext
+
+    # We use ffmpeg's loudnorm filter:
+    # - I=<target> => Integrated loudness in LUFS
+    # - TP=<peak>  => True peak in dB
+    # - LRA=<range> => Loudness range
+    ffmpeg_cmd = [
+        "ffmpeg",
+        "-i", file_path,
+        "-y",  # Overwrite output without asking
+        "-vn",  # No video
+        "-af",
+        f"loudnorm=I={target_lufs}:TP={true_peak}:LRA={loudness_range}",
+        normalized_file
+    ]
+
+    try:
+        proc = subprocess.run(ffmpeg_cmd, capture_output=True, text=True)
+        if proc.returncode != 0:
+            logger.error(f"FFmpeg error: {proc.stderr}")
+            return False
+
+        # Replace the original file with the normalized file
+        os.remove(file_path)
+        os.rename(normalized_file, file_path)
+        return True
+
+    except Exception as e:
+        logger.error(f"Exception: {e}")
+        return False
 
 def is_yt_link(link):
     return re.match(r"^(http(s)?:\/\/)?((w){3}.)?youtu(be|.be)?(\.com)?\/.+", link)
@@ -681,6 +736,12 @@ def upload(track_number):
             # Remove the WAV file
             os.remove(os.path.splitext(tmp_file_path)[0] + ".wav")
 
+        # Normalize the audio file
+        if not normalize_lufs_ffmpeg(tmp_file_path):
+            logger.warning(f"LUFS normalization failed for {tmp_file_path}")
+        else:
+            logger.info(f"Performed LUFS normalization for {tmp_file_path}")
+
         # Add track number and (if provided) custom name to the filename
         if custom_name:
             new_filename = f"{track_number}_{custom_name}.mp3"
@@ -984,6 +1045,12 @@ def upload_sample(bank, sample_key):
         else:
             logger.warning("sox failed to remove silence.")
 
+        # Normalize the audio file
+        if not normalize_lufs_ffmpeg(tmp_file_path):
+            logger.warning(f"LUFS normalization failed for {tmp_file_path}")
+        else:
+            logger.info(f"Performed LUFS normalization for {tmp_file_path}")
+
         # Check if file size exceeds MAX_SAMPLE_SIZE
         if os.path.getsize(tmp_file_path) > MAX_SAMPLE_SIZE:
             os.remove(tmp_file_path)
@@ -1113,6 +1180,12 @@ def upload_sample(bank, sample_key):
             logger.info("Silence from the beginning successfully removed!")
         else:
             logger.warning("sox failed to remove silence.")
+
+        # Normalize the audio file
+        if not normalize_lufs_ffmpeg(tmp_out):
+            logger.warning(f"LUFS normalization failed for {tmp_out}")
+        else:
+            logger.info(f"Performed LUFS normalization for {tmp_out}")
 
         # Check if file size exceeds MAX_SAMPLE_SIZE
         if os.path.getsize(tmp_out) > MAX_SAMPLE_SIZE:
