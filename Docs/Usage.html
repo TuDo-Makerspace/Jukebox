@@ -178,16 +178,16 @@
                 <li><a href="#adding-samples">Adding Samples</a></li>
             </ul>
         </nav>
+        <img src="./Jukebox.png" alt="Jukebox" style="width: 100%; margin-top: 60px; border: 0px;">
     </aside>
 
     <main class="main-content">
         <section id="flowchart">
             <h2>Flowchart</h2>
+            <p>Here's a high level overview of the jukebox's functionality:</p>
             <a href="./Diag.png" target="_blank" class="image-container">
                 <img src="./Diag.png" alt="Jukebox Flowchart">
             </a>
-            <p>The flowchart is simplified and does not reflect all the details of the code. It serves as a
-                high-level overview of the jukebox's functionality.</p>
         </section>
 
         <section id="powering-on-the-jukebox">
@@ -216,6 +216,7 @@
             <h2>Selecting a Song</h2>
             <p>Enter the song number using the keypad. To confirm your selection, press the <span
                     class="btn btn-gray">G</span> key. The jukebox will begin playing your chosen song.</p>
+            <br>
             <p>To cancel your current entry, press the <span class="btn btn-gray">R</span> key.
             <div class="note">
                 <strong>Note:</strong>
@@ -240,12 +241,14 @@
             <p>To activate soundboard mode, press the <span class="btn btn-yellow">🟡 YELLOW</span> key. In this mode,
                 the
                 keypad functions as a soundboard.</p>
+            <br>
             <p>The jukebox has 10 soundboard banks. Upon entering soundboard mode, Bank 1 is automatically selected.
                 Switch between banks using:</p>
             <ul>
                 <li><span class="btn btn-red">🔴 RED</span> - Next bank</li>
                 <li><span class="btn btn-blue">🔵 BLUE</span> - Previous bank</li>
             </ul>
+            <br>
             <p>To exit soundboard mode, press the <span class="btn btn-yellow">🟡 YELLOW</span> key again.
                 Alternatively,
                 soundboard mode will automatically exit after 60 seconds of inactivity.</p>
@@ -255,6 +258,7 @@
             <h2>Uploading Songs</h2>
             <p>To upload songs to the jukebox:</p>
             <ol>
+                <li>Ensure the jukebox is powered on</li>
                 <li>Connect to the TuDo WiFi</li>
                 <li>Open <a href="http://jukebox.local" target="_blank">jukebox.local</a> in your web browser</li>
                 <li>Select your desired track number</li>
