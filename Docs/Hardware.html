@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Jukebox Hardware Documentation</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --secondary: #3498db;
+            --accent: #e74c3c;
+            --sidebar-width: 250px;
+            --gap: 30px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            display: grid;
+            grid-template-columns: var(--sidebar-width) 1fr;
+            min-height: 100vh;
+        }
+
+        /* Sidebar Navigation */
+        .sidebar {
+            background-color: var(--primary);
+            color: white;
+            padding: 20px;
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            overflow-y: auto;
+        }
+
+        .sidebar h1 {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--secondary);
+        }
+
+        .sidebar nav ul {
+            list-style: none;
+        }
+
+        .sidebar nav li {
+            margin-bottom: 10px;
+        }
+
+        .sidebar nav a {
+            color: white;
+            text-decoration: none;
+            display: block;
+            padding: 8px 10px;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+
+        .sidebar nav a:hover {
+            background-color: var(--secondary);
+        }
+
+        /* Main Content */
+        .main-content {
+            padding: 40px var(--gap);
+            max-width: 800px;
+        }
+
+        h2 {
+            color: var(--primary);
+            margin: 30px 0 15px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid var(--secondary);
+        }
+
+        img {
+            max-width: 100%;
+            height: auto;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 5px;
+            display: block;
+            margin: 15px auto;
+        }
+
+        .note {
+            background-color: #f8f9fa;
+            border-left: 4px solid var(--secondary);
+            padding: 12px 15px;
+            margin: 15px 0;
+            border-radius: 0 4px 4px 0;
+        }
+
+        ol,
+        ul {
+            padding-left: 20px;
+            margin: 10px 0;
+        }
+
+        li {
+            margin-bottom: 8px;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            body {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                position: static;
+                height: auto;
+                width: 100%;
+            }
+
+            .main-content {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <aside class="sidebar">
+        <h1>Jukebox Hardware Docs</h1>
+        <nav>
+            <ul>
+                <li><a href="#jukebox">Jukebox</a></li>
+                <li><a href="#modifications">Modifications</a></li>
+                <li><a href="#power">Power</a></li>
+                <li><a href="#components">Components</a></li>
+                <li><a href="#raspberry-pi">Raspberry Pi</a></li>
+                <li><a href="#lamp-driver">Lamp Driver</a></li>
+                <li><a href="#keypad">Keypad</a></li>
+                <li><a href="#dsp-board">DSP Board</a></li>
+                <li><a href="#amplifier-boards">Amplifier Boards</a></li>
+                <li><a href="#speakers">Speakers</a></li>
+            </ul>
+        </nav>
+        <img src="./Jukebox.png" alt="Jukebox" style="width: 90%; margin-top: 20px; border: 0px;">
+    </aside>
+
+    <main class="main-content">
+
+        <!-- Jukebox -->
+        <section id="jukebox">
+            <h2>Jukebox</h2>
+            <p>
+                The original jukebox used in our project is an
+                <a href="https://www.jukebox-world.de/Forum/Archiv/NSM/NSMSatellite200.htm" target="_blank">
+                    NSM Satellite 200
+                </a>, likely produced sometime in the late 1980s.
+            </p>
+            <br>
+            <p>
+                In this document we will only cover the hardware modifications made for our project.
+                For detailed information on the jukebox's original hardware and specifications, please consult
+                the following resources:
+            </p>
+            <ul>
+                <li>
+                    <a href="https://www.jukebox-world.de/Forum/Archiv/NSM/NSMSatellite200.htm" target="_blank">
+                        NSM Satellite 200 on Jukebox-World.de
+                    </a>
+                </li>
+                <li>
+                    <a href="https://propstoreauction.com/lot-details/index/catalog/359/lot/119259" target="_blank">
+                        NSM Satellite 200 at Propstore Auction
+                    </a>
+                </li>
+                <li>
+                    <a href="https://www.jukebox-world.de/Forum/Archiv/NSM/NSM-Bilder-Uebersicht.htm" target="_blank">
+                        NSM Jukebox Image Archive on Jukebox-World.de
+                    </a>
+                </li>
+            </ul>
+        </section>
+
+        <!-- Modifications -->
+        <section id="modifications">
+            <h2>Modifications</h2>
+            <p>
+                Most original components of the jukebox were removed and replaced with modern hardware.
+                The primary modifications include:
+            </p>
+            <ul>
+                <li>
+                    <b>Logic and Playback:</b> The primary logic and audio playback are now managed by a Raspberry Pi.
+                    <em>(TODO: Specify Raspberry Pi model)</em>
+                </li>
+                <li>
+                    <b>Speakers:</b> The Original speakers have been replaced with new ones.
+                    <em>(TODO: Document exact speaker model/specifications)</em>
+                </li>
+                <li>
+                    <b>Audio Processing and Amplification:</b> Audio output is managed by a
+                    <a href="https://store.sure-electronics.com/product/AA-AP23122" target="_blank">
+                        WONDOM APM2 DSP Board
+                    </a> in combination with two amplifier boards.
+                    <em>(TODO: Specify amplifier board models)</em>
+                </li>
+                <li>
+                    <b>Volume Control:</b> The volume adjustment buttons located at the back of the jukebox are directly
+                    wired to the DSP board.
+                </li>
+                <li>
+                    <b>Lighting:</b> The original lighting controller was replaced by a custom lamp driver board which
+                    can
+                    be driven directly from the Raspberry Pi.
+                </li>
+                <li>
+                    <b>Keypad Interface:</b> A custom keypad decoder circuit was developed, allowing the Raspberry Pi to
+                    interpret user input from the original jukebox keypad.
+                </li>
+            </ul>
+        </section>
+
+        <!-- Power -->
+        <section id="power">
+            <h2>Power</h2>
+            <p>
+                The jukebox utilizes two 12V power supplies and two 5V USB adapters to power its components:
+            </p>
+            <ul>
+                <li>
+                    <b>Audio Components:</b> One low-noise 12V power supply provides clean and stable power
+                    specifically for audio components.
+                </li>
+                <li>
+                    <b>Lamps:</b> A separate 12V 8.5A power supply independently powers the lamps.
+                </li>
+                <li>
+                    <b>RPi and DSP Board:</b> Two dedicated 5V USB adapters supply power to the Raspberry Pi and the DSP
+                    board.
+                </li>
+            </ul>
+            <p>
+                All power supplies are connected to single power strip.
+            </p>
+            <p>
+                <em>(TODO: Specify exact power supply models/ratings)</em>
+            </p>
+        </section>
+
+        <!-- Components -->
+        <section id="components">
+            <h2>Components</h2>
+            <p>
+                The following picture highlights all the components built into the jukebox:
+            </p>
+            <p><strong>TODO Add picture</strong></p>
+            <p>Here’s the respective block diagram:</p>
+            <img src="./Block.png" alt="Block Diagram" />
+        </section>
+
+        <!-- Raspberry Pi -->
+        <section id="raspberry-pi">
+            <h2>Raspberry Pi</h2>
+            <p>
+                The Raspberry Pi serves as the primary control unit for the jukebox,
+                managing all logical operations and handling song playback.
+                Detailed information about the software running on the Pi can be found in the
+                <a href="https://tudo-makerspace.github.io/Jukebox/Docs/Software.html" target="_blank">
+                    software documentation
+                </a>.
+            </p>
+            <br>
+            <p>
+                To interface with other components, a custom perfboard has been created, which plugs directly into
+                the Raspberry Pi's GPIO pins. This perfboard provides connections to the lamp driver. It also
+                contains the keypad decoder circuit (refer to the Keypad section for more details) along with a
+                connection to the Keypad PCB itself.
+            </p>
+            <b>TODO: Add picture</b>
+            </p>
+            <br>
+            <p>
+                Audio output from the Raspberry Pi is routed via its built-in 3.5mm audio jack, which connects directly
+                to the DSP board. Initially, an attempt was made to utilize the I²S interface for improved audio
+                fidelity; however, due to reliability issues arising from the Raspberry Pi's lack of a dedicated master
+                clock, this approach was abandoned. Consequently, the perfboard contains several unused wires that were
+                intended for I²S connections.
+            </p>
+            <br>
+            <p>
+                Power to the Raspberry Pi is supplied by a dedicated 5V USB adapter through its micro USB port.
+            </p>
+        </section>
+
+        <!-- Lamp Driver -->
+        <section id="lamp-driver">
+            <h2>Lamp Driver</h2>
+            <p>
+                The jukebox uses
+                <a href="https://www.amazon.de/dp/B0CBKYPM57?ref_=ppx_hzsearch_conn_dt_b_fed_asin_title_1"
+                    target="_blank">
+                    standard 12V T10 lamps
+                </a>
+                distributed across three independently controllable segments:
+            </p>
+            <ul>
+                <li>Top</li>
+                <li>Left & Right (wired together)</li>
+                <li>Bottom</li>
+            </ul>
+            <p>
+                To control these segments, a custom lamp driver board was designed to convert the Raspberry Pi’s 3.3V
+                GPIO outputs to 12V control signals. The KiCAD design files are available
+                <a href="https://github.com/TuDo-Makerspace/Jukebox/tree/main/Lamps" target="_blank">here</a>.
+            </p>
+            <img src="./LampDriverSchem.png" alt="Lamp Driver Schematic" />
+            <img src="./LampDriverPCB3D.png" alt="Lamp Driver PCB 3D" />
+            <p>
+                The lamp driver receives 12V power from the lighting power supply and connects to the Raspberry Pi via
+                a 4-pin JST connector carrying <code>GND</code>, <code>Top</code>, <code>L/R</code>, and
+                <code>Bottom</code>
+                signals. Lamp outputs are routed through a 6-pin Molex connector, with each segment receiving a
+                dedicated <code>+</code> and <code>-</code> connection. When all lamps are active, the board can draw
+                up to 6A at 12V, with the <code>L/R</code> segment being the most power-hungry (up to 3A).
+            </p>
+            <br>
+            <p>
+                Signal amplification is handled in two stages:
+            </p>
+            <ol>
+                <li>
+                    The 3.3V GPIO signal is boosted to 12V using a BSS138 N-channel MOSFET.
+                </li>
+                <li>
+                    This 12V signal is then used to switch a P-channel power MOSFET that controls the lamp segment.
+                </li>
+            </ol>
+            <br>
+            <p>
+                In the current hardware revision, <strong>TSM7P06CP</strong> P-MOSFETs are used instead of the
+                <strong>FDD4141</strong> parts shown in the schematic. Unfortunately, the TSM7P06CP has a significantly
+                higher R<sub>DS(on)</sub>, which leads to heat buildup under load. Thermal testing has shown
+                temperatures
+                reaching up to 60°C with the current heatsink. While this remains within safe operating limits, we added
+                a layer of Kapton tape between the heatsink and the wooden enclosure as a precaution.
+            </p>
+            <br>
+            <div class="note">
+                <p>
+                    <strong>Recommendation:</strong> For improved thermal performance, we suggest replacing the
+                    TSM7P06CP
+                    MOSFETs with FDD4141s in a future revision. This can be done either by updating the PCB layout or
+                    replacing the components on the current board.
+                </p>
+            </div>
+        </section>
+
+        <!-- Keypad -->
+        <section id="keypad">
+            <h2>Keypad</h2>
+            <p>TODO</p>
+        </section>
+
+        <!-- DSP Board -->
+        <section id="dsp-board">
+            <h2>DSP Board</h2>
+            <p>
+                The jukebox’s audio processing is handled by a
+                <a href="https://store.sure-electronics.com/product/AA-AP23122" target="_blank">
+                    WONDOM APM2 DSP Board
+                </a>.
+            </p>
+            <img src="./APM2.png" alt="WONDOM APM2 DSP Board" />
+            <p>
+                The DSP board primarily functions as a 4-way crossover, splitting the incoming audio signal into four
+                distinct frequency bands:
+            </p>
+            <ul>
+                <li>Low-Low</li>
+                <li>Low-Mid</li>
+                <li>High-Mid</li>
+                <li>High-High</li>
+            </ul>
+            <br>
+            <p>
+                The board receives stereo audio input from the Raspberry Pi’s 3.5mm jack via its ADC input pins
+                (<code>AINL</code>, <code>AINR</code>) and outputs processed audio through four DAC channels
+                (<code>DAC0–DAC3</code>), which are connected to two separate amplifier boards.
+            </p>
+            <br>
+            <p>
+                The volume and clear buttons on the back of the jukebox are directly wired to the GPIO pins of the
+                DSP board:
+            </p>
+            <table style="margin: 15px auto; border-collapse: collapse; width: 80%;">
+                <thead>
+                    <tr style="border-bottom: 2px solid var(--secondary); text-align: left;">
+                        <th style="padding: 8px;">Button</th>
+                        <th style="padding: 8px;">GPIO Pin</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td style="padding: 8px;">+</td>
+                        <td style="padding: 8px;">GPIO 10</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px;">-</td>
+                        <td style="padding: 8px;">GPIO 11</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px;">Clear</td>
+                        <td style="padding: 8px;"><em>TODO</em></td>
+                    </tr>
+                </tbody>
+            </table>
+            <br>
+            <p>
+                The DSP configuration is developed and uploaded using
+                <a href="https://www.analog.com/en/resources/evaluation-hardware-and-software/embedded-development-software/ss_sigst_02.html"
+                    target="_blank">
+                    SigmaStudio
+                </a>. The corresponding project file is available
+                <a href="https://github.com/TuDo-Makerspace/Jukebox/tree/main/Sound/DSP" target="_blank">here</a>.
+            </p>
+            <img src="./Sigma.png" alt="Sigma Studio" />
+            <p>
+                A dedicated USB programming board is used to upload the SigmaStudio configuration. It can be found
+                inside the jukebox.
+            </p>
+            <br>
+            <p>
+                Further documentation and details about the DSP board, as well as how to program it, can be found in
+                <a href="https://files.sure-electronics.com/download/The_correspondence_of_APM2_hardware_and_DSP_program.pdf"
+                    target="_blank">
+                    this manual
+                </a>.
+                <a href="https://www.youtube.com/watch?v=TjN1SGKeVvw" target="_blank">
+                    Video tutorials
+                </a> are also available.
+            </p>
+            <br>
+            <h3>Troubleshooting Tips</h3>
+            <p>
+                Here are some common frustrations we encountered while working with the DSP board:
+            </p>
+            <ul>
+                <li>
+                    <strong>USB not recognized (usb device highlighted red):</strong>
+                    <ul>
+                        <li>Power off the DSP board and unplug the programmer</li>
+                        <li>Unplug the programmer's USB cable</li>
+                        <li>Replug the programmer's USB cable, check for the device to appear green in SigmaStudio</li>
+                        <li>Plug the programmer into the DSP board</li>
+                        <li>Power on the DSP board (That being said, it should already be powered on through the
+                            programmer at this point)</li>
+                    </ul>
+                </li>
+                <li>
+                    <strong>EEPROM programming stuck at &quot;Start Download&quot;:</strong>
+                    <ul>
+                        <li>Click <em>Link Project</em></li>
+                        <li>Click <em>Link Compile Connect</em></li>
+                        <li>Click <em>Link Compile Download</em></li>
+                        <li>Try flashing the EEPROM again</li>
+                    </ul>
+                </li>
+            </ul>
+            <br>
+            <h3>Future Plans</h3>
+            <p>
+                We plan to measure the frequency response of the speakers to implement a tailored equalizer using the
+                DSP board.
+            </p>
+        </section>
+
+        <!-- Amplifier Boards -->
+        <section id="amplifier-boards">
+            <h2>Amplifier Boards</h2>
+            <p>TODO</p>
+        </section>
+
+        <!-- Speakers -->
+        <section id="speakers">
+            <h2>Speakers</h2>
+            <p>TODO</p>
+        </section>
+
+    </main>
+</body>
+
+</html>
