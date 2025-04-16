@@ -274,7 +274,7 @@
                 contains the keypad decoder circuit (refer to the Keypad section for more details) along with a
                 connection to the Keypad PCB itself.
             </p>
-            <b>TODO: Add picture</b>
+            <img src="./Perf.png" alt="Perfboard" />
             </p>
             <br>
             <p>
@@ -356,7 +356,158 @@
         <!-- Keypad -->
         <section id="keypad">
             <h2>Keypad</h2>
-            <p>TODO</p>
+            <p>
+                The jukebox features two keypads:
+            </p>
+            <ul>
+                <li><strong>Primary keypad:</strong> Contains digits <code>0–9</code>, as well as an <code>R</code>
+                    and <code>G</code> key.</li>
+                <li><strong>Secondary keypad:</strong> Includes three buttons marked with a <strong>yellow</strong>,
+                    <strong>blue</strong>, and <strong>red</strong> dot.
+                </li>
+            </ul>
+            <p>
+                The secondary keypad is physically connected to the primary keypad via a ribbon cable. Electrically,
+                it functions as an extension of the primary keypad, and both share the same decoding logic.
+            </p>
+            <img src="./Keypad.jpg" alt="Keypad" />
+            <br>
+            <p>
+                The reverse-engineered schematic of the keypad, along with the keypad decoder that ensures Raspberry
+                Pi–compatible logic levels, is shown below:
+            </p>
+            <img src="./KeypadSch.png" alt="Keypad Schematic" />
+
+            <p>
+                While the keypad circuit is somewhat quirky, it boils down to providing four digital outputs whose
+                states depend on which key is pressed. As long as only one key is pressed at a time, each key
+                results in a unique combination of the four output lines.
+            </p>
+            <br>
+            <p>
+                The table below summarizes the output patterns and their corresponding keys:
+            </p>
+            <table style="margin: 15px 0; border-collapse: collapse; width: 100%;">
+                <thead>
+                    <tr style="border-bottom: 2px solid var(--secondary); text-align: left;">
+                        <th style="padding: 8px;">Output Pattern (A, B, C, D)</th>
+                        <th style="padding: 8px;">Key</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td style="padding: 8px;">(0, 1, 0, 1)</td>
+                        <td style="padding: 8px;">0</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px;">(1, 0, 1, 1)</td>
+                        <td style="padding: 8px;">1</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px;">(1, 0, 0, 1)</td>
+                        <td style="padding: 8px;">2</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px;">(1, 0, 1, 0)</td>
+                        <td style="padding: 8px;">3</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px;">(0, 0, 1, 1)</td>
+                        <td style="padding: 8px;">4</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px;">(0, 0, 0, 1)</td>
+                        <td style="padding: 8px;">5</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px;">(0, 0, 1, 0)</td>
+                        <td style="padding: 8px;">6</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px;">(1, 1, 1, 1)</td>
+                        <td style="padding: 8px;">7</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px;">(1, 1, 0, 1)</td>
+                        <td style="padding: 8px;">8</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px;">(1, 1, 1, 0)</td>
+                        <td style="padding: 8px;">9</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px;">(0, 1, 1, 1)</td>
+                        <td style="padding: 8px;">R</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px;">(0, 1, 1, 0)</td>
+                        <td style="padding: 8px;">G</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px;">(1, 0, 0, 0)</td>
+                        <td style="padding: 8px;">YELLOW</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px;">(0, 1, 0, 0)</td>
+                        <td style="padding: 8px;">BLUE</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px;">(1, 1, 0, 0)</td>
+                        <td style="padding: 8px;">RED</td>
+                    </tr>
+                </tbody>
+            </table>
+            <p>
+                To better understand how the keypad circuit functions, let's walk through a few examples:
+            </p>
+            <br>
+            <p>
+                <strong>Example 1 – Yellow Key:</strong><br>
+                Arguably the simplest case. When the yellow key is pressed, current flows through the key, diode
+                <code>D401</code>, and resistor <code>R9</code>.
+                This causes a voltage drop across <code>R9</code>, which is detected as a HIGH signal on
+                <code>GPIO14</code>.
+                In this configuration, no other current paths are active, so only <code>GPIO14</code> will register a
+                HIGH state.
+            <div class="note">
+                <p>
+                    <b>Note:</b> This example also highlights how the decoder circuit works. It simply contains
+                    resistors
+                    valued such
+                    that the measured voltage drop corresponds to the RPi's logic levels. Zener diodes are added where
+                    needed to clamp voltages safely—mainly as a safeguard if multiple keys are pressed.
+                </p>
+            </div>
+            </p>
+            <p>
+                <strong>Example 2 – Red Key:</strong><br>
+                Pressing the red key causes current to flow through the key, as well as diodes <code>D402</code> and
+                <code>D403</code>.
+                This results in voltage drops across both <code>R9</code> and <code>R10</code>, leading to HIGH readings
+                on <code>GPIO14</code> and <code>GPIO15</code>.
+            </p>
+            <br>
+            <p>
+                <strong>Example 3 – Key 3 and Transistor <code>T401</code>:</strong><br>
+                With this example we introduce the purpose of the PNP transistors. When no key is pressed, the base of
+                PNP transistor <code>T401</code> is pulled high via resistor
+                <code>R402</code> (2.2k), keeping the transistor turned off.
+                Pressing key 3, however, pulls the base low through the key, <code>D401</code>, and <code>R9</code>,
+                which switches <code>T401</code> on.
+                This allows current to flow through <code>R6</code> and <code>R8</code>, creating voltage dividers that
+                drop the voltage to safe 3.3V levels.
+                As a result, both <code>GPIO14</code> (via <code>R9</code>) and <code>GPIO23</code> read HIGH.
+            </p>
+            <br>
+            <p>
+                <strong>Example 4 – Dual Transistor Activation:</strong><br>
+                When pressing any key from the bottom row of the schematic (keys 4, 1, 7, or R), both PNP transistors
+                are activated.
+                Their bases are connected via diodes to this row, so pressing any of these keys pulls both transistor
+                bases low, switching them on.
+                Consequently, for these keys, both <code>GPIO24</code> and <code>GPIO23</code> will always register
+                HIGH.
+            </p>
         </section>
 
         <!-- DSP Board -->
@@ -370,7 +521,8 @@
             </p>
             <img src="./APM2.png" alt="WONDOM APM2 DSP Board" />
             <p>
-                The DSP board primarily functions as a 4-way crossover, splitting the incoming audio signal into four
+                The DSP board primarily functions as a 4-way crossover, splitting the incoming audio signal into
+                four
                 distinct frequency bands:
             </p>
             <ul>
@@ -448,7 +600,8 @@
                     <ul>
                         <li>Power off the DSP board and unplug the programmer</li>
                         <li>Unplug the programmer's USB cable</li>
-                        <li>Replug the programmer's USB cable, check for the device to appear green in SigmaStudio</li>
+                        <li>Replug the programmer's USB cable, check for the device to appear green in SigmaStudio
+                        </li>
                         <li>Plug the programmer into the DSP board</li>
                         <li>Power on the DSP board (That being said, it should already be powered on through the
                             programmer at this point)</li>
@@ -467,7 +620,8 @@
             <br>
             <h3>Future Plans</h3>
             <p>
-                We plan to measure the frequency response of the speakers to implement a tailored equalizer using the
+                We plan to measure the frequency response of the speakers to implement a tailored equalizer using
+                the
                 DSP board.
             </p>
         </section>
@@ -484,13 +638,16 @@
             </p>
             <img src="./TPA3116.jpg" alt="TPA3116D2 Amplifier Board" />
             <p>
-                Each board supports an input voltage range of 12V to 26V and features two output channels, each capable
-                of delivering up to 50W. Gain for each channel can be adjusted using the small trim potentiometers on
+                Each board supports an input voltage range of 12V to 26V and features two output channels, each
+                capable
+                of delivering up to 50W. Gain for each channel can be adjusted using the small trim potentiometers
+                on
                 the board, however, note that these are very sensitive and should be adjusted with care.
             </p>
             <br>
             <p>
-                As already mentioned in the DSP Board section, the DSP outputs four separate audio channels. These are
+                As already mentioned in the DSP Board section, the DSP outputs four separate audio channels. These
+                are
                 split evenly between the two amplifier boards, with each board receiving two channels. The amplified
                 signals are then routed to the appropriate speakers.
             </p>
@@ -500,12 +657,14 @@
         <section id="speakers">
             <h2>Speakers</h2>
             <p>
-                Some of the original speakers were replaced with new ones. Since we simply used speakers that were on
+                Some of the original speakers were replaced with new ones. Since we simply used speakers that were
+                on
                 hand at the Makerspace, their exact specifications were never documented.
             </p>
             <br>
             <p>
-                We did, however, need to 3D-print an adapter to accommodate the new mid-range speakers. The 3D model is
+                We did, however, need to 3D-print an adapter to accommodate the new mid-range speakers. The 3D model
+                is
                 available
                 <a href="https://github.com/TuDo-Makerspace/Jukebox/tree/main/Sound/Adapter" target="_blank">here</a>.
             </p>
