@@ -145,7 +145,8 @@
                 <li><a href="#speakers">Speakers</a></li>
             </ul>
         </nav>
-        <img src="./Jukebox.png" alt="Jukebox" style="width: 90%; margin-top: 20px; border: 0px;">
+        <a href="./Jukebox.png" target="_blank" class="image-container"><img src="./Jukebox.png" alt="Jukebox"
+                style="width: 90%; margin-top: 20px; border: 0px;"></a>
     </aside>
 
     <main class="main-content">
@@ -251,9 +252,11 @@
             <p>
                 The following picture highlights all the components built into the jukebox:
             </p>
-            <img src="./HardwarePhoto.png" alt="Picture of Hardware" />
+            <a href="./HardwarePhoto.png" target="_blank" class="image-container"><img src="./HardwarePhoto.png"
+                    alt="Picture of Hardware" /></a>
             <p>Here’s the respective block diagram:</p>
-            <img src="./Block.png" alt="Block Diagram" />
+            <a href="./Block.png" target="_blank" class="image-container"><img src="./Block.png"
+                    alt="Block Diagram" /></a>
         </section>
 
         <!-- Raspberry Pi -->
@@ -274,7 +277,7 @@
                 contains the keypad decoder circuit (refer to the Keypad section for more details) along with a
                 connection to the Keypad PCB itself.
             </p>
-            <img src="./Perf.png" alt="Perfboard" />
+            <a href="./Perf.png" target="_blank" class="image-container"><img src="./Perf.png" alt="Perfboard" /></a>
             </p>
             <br>
             <p>
@@ -311,8 +314,10 @@
                 GPIO outputs to 12V control signals. The KiCAD design files are available
                 <a href="https://github.com/TuDo-Makerspace/Jukebox/tree/main/Lamps" target="_blank">here</a>.
             </p>
-            <img src="./LampDriverSchem.png" alt="Lamp Driver Schematic" />
-            <img src="./LampDriverPCB3D.png" alt="Lamp Driver PCB 3D" />
+            <a href="./LampDriverSchem.png" target="_blank" class="image-container"><img src="./LampDriverSchem.png"
+                    alt="Lamp Driver Schematic" /></a>
+            <a href="./LampDriverPCB3D.png" target="_blank" class="image-container"><img src="./LampDriverPCB3D.png"
+                    alt="Lamp Driver PCB 3D" /></a>
             <p>
                 The lamp driver receives 12V power from the lighting power supply and connects to the Raspberry Pi via
                 a 4-pin JST connector carrying <code>GND</code>, <code>Top</code>, <code>L/R</code>, and
@@ -370,13 +375,14 @@
                 The secondary keypad is physically connected to the primary keypad via a ribbon cable. Electrically,
                 it functions as an extension of the primary keypad, and both share the same decoding logic.
             </p>
-            <img src="./Keypad.jpg" alt="Keypad" />
+            <a href="./Keypad.jpg" target="_blank" class="image-container"><img src="./Keypad.jpg" alt="Keypad" /></a>
             <br>
             <p>
                 The reverse-engineered schematic of the keypad, along with the keypad decoder that ensures Raspberry
                 Pi–compatible logic levels, is shown below:
             </p>
-            <img src="./KeypadSch.png" alt="Keypad Schematic" />
+            <a href="./KeypadSch.png" target="_blank" class="image-container"><img src="./KeypadSch.png"
+                    alt="Keypad Schematic" /></a>
 
             <p>
                 While the keypad circuit is somewhat quirky, it boils down to providing four digital outputs whose
@@ -519,7 +525,8 @@
                     WONDOM APM2 DSP Board
                 </a>.
             </p>
-            <img src="./APM2.png" alt="WONDOM APM2 DSP Board" />
+            <a href="./APM2.png" target="_blank" class="image-container"><img src="./APM2.png"
+                    alt="WONDOM APM2 DSP Board" /></a>
             <p>
                 The DSP board primarily functions as a 4-way crossover, splitting the incoming audio signal into
                 four
@@ -573,7 +580,8 @@
                 </a>. The corresponding project file is available
                 <a href="https://github.com/TuDo-Makerspace/Jukebox/tree/main/Sound/DSP" target="_blank">here</a>.
             </p>
-            <img src="./Sigma.png" alt="Sigma Studio" />
+            <a href="./Sigma.png" target="_blank" class="image-container"><img src="./Sigma.png"
+                    alt="Sigma Studio" /></a>
             <p>
                 A dedicated USB programming board is used to upload the SigmaStudio configuration. It can be found
                 inside the jukebox.
@@ -636,7 +644,8 @@
                 </a>
                 to drive the speakers.
             </p>
-            <img src="./TPA3116.jpg" alt="TPA3116D2 Amplifier Board" />
+            <a href="./TPA3116.jpg" target="_blank" class="image-container"><img src="./TPA3116.jpg"
+                    alt="TPA3116D2 Amplifier Board" /></a>
             <p>
                 Each board supports an input voltage range of 12V to 26V and features two output channels, each
                 capable
@@ -668,7 +677,8 @@
                 available
                 <a href="https://github.com/TuDo-Makerspace/Jukebox/tree/main/Sound/Adapter" target="_blank">here</a>.
             </p>
-            <img src="./Adapter.png" alt="Speaker Adapter" />
+            <a href="./Adapter.png" target="_blank" class="image-container"><img src="./Adapter.png"
+                    alt="Speaker Adapter" /></a>
         </section>
 
     </main>
