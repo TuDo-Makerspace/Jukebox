@@ -37,6 +37,7 @@ import sys
 import logging
 import concurrent.futures
 import tempfile
+import uuid
 
 from flask import Flask, render_template, request, redirect, url_for, jsonify
 from yt_dlp import YoutubeDL
@@ -220,11 +221,9 @@ def trim_silent_start(wav, min_dur, threshold):
         os.rename(trimmed_file, wav)
         return True
 
+
 def normalize_lufs_ffmpeg(
-    file_path,
-    target_lufs=-14.0,
-    true_peak=-1.0,
-    loudness_range=11.0
+    file_path, target_lufs=-14.0, true_peak=-1.0, loudness_range=11.0
 ):
     """
     Normalizes an audio file to a given LUFS level using FFmpeg's loudnorm filter.
@@ -236,8 +235,7 @@ def normalize_lufs_ffmpeg(
         true_peak (float): True Peak limit in dB (e.g. -1.0).
         loudness_range (float): Loudness range target (LRA).
 
-    Returns:
-        bool: True if successful, False otherwise.
+    Raises error on fail
     """
     import os
     import subprocess
@@ -252,28 +250,93 @@ def normalize_lufs_ffmpeg(
     # - LRA=<range> => Loudness range
     ffmpeg_cmd = [
         "ffmpeg",
-        "-i", file_path,
+        "-i",
+        file_path,
         "-y",  # Overwrite output without asking
         "-vn",  # No video
         "-af",
         f"loudnorm=I={target_lufs}:TP={true_peak}:LRA={loudness_range}",
-        normalized_file
+        normalized_file,
     ]
 
     try:
         proc = subprocess.run(ffmpeg_cmd, capture_output=True, text=True)
         if proc.returncode != 0:
-            logger.error(f"FFmpeg error: {proc.stderr}")
-            return False
+            raise Exception(f"FFmpeg failed: {proc.stderr}")
 
         # Replace the original file with the normalized file
         os.remove(file_path)
         os.rename(normalized_file, file_path)
-        return True
 
     except Exception as e:
-        logger.error(f"Exception: {e}")
-        return False
+        raise Exception(f"Normalization failed: {str(e)}")
+
+
+def remote_normalize_lufs_ffmpeg(
+    file_path, target_lufs=-14.0, true_peak=-1.0, loudness_range=11.0
+):
+    """
+    • Copy the file to /tmp on the download server
+    • Run ffmpeg loudnorm there
+    • Copy the result back over the original file
+    • Clean up the remote temp directory
+    Raises error on fail
+    """
+    if not remote:  # remote = False if the server isn’t configured
+        raise Exception("Remote server not configured.")
+
+    temp = None
+
+    try:
+        # 1 make a per‑call workspace on the server
+        temp = f"/tmp/jukebox_norm_{uuid.uuid4().hex}"
+        remote_mkdir(temp)
+
+        fname_remote = f"{temp}/{os.path.basename(file_path)}"
+
+        # 2 upload
+        subprocess.run(
+            f"scp -q -P {DL_SERVER_SSH_PORT} {escape_path(file_path)} "
+            f"{DL_SERVER_USER}@{DL_SERVER_IP}:{escape_path(fname_remote)}",
+            shell=True,
+            check=True,
+            timeout=REMOTE_TIMEOUT,
+        )
+
+        # 3 normalise on the server
+        ffmpeg_cmd = (
+            f"ffmpeg -i {escape_path(fname_remote)} -y -vn -af "
+            f'"loudnorm=I={target_lufs}:TP={true_peak}:LRA={loudness_range}" '
+            f"{escape_path(fname_remote)}"
+        )
+        subprocess.run(
+            f"ssh -o StrictHostKeyChecking=no -p {DL_SERVER_SSH_PORT} "
+            f'{DL_SERVER_USER}@{DL_SERVER_IP} "{ffmpeg_cmd}"',
+            shell=True,
+            check=True,
+            timeout=REMOTE_TIMEOUT * 2,
+        )
+
+        # 4 download, overwriting the local file
+        subprocess.run(
+            f"scp -q -P {DL_SERVER_SSH_PORT} "
+            f"{DL_SERVER_USER}@{DL_SERVER_IP}:{escape_path(fname_remote)} "
+            f"{escape_path(file_path)}",
+            shell=True,
+            check=True,
+            timeout=REMOTE_TIMEOUT,
+        )
+
+    except Exception as exc:
+        raise Exception(f"Remote LUFS normalization failed: {str(exc)}") from exc
+
+    finally:
+        # best‑effort tidy
+        try:
+            remote_rmdir(temp)
+        except Exception:
+            pass
+
 
 def is_yt_link(link):
     return re.match(r"^(http(s)?:\/\/)?((w){3}.)?youtu(be|.be)?(\.com)?\/.+", link)
@@ -737,10 +800,20 @@ def upload(track_number):
             os.remove(os.path.splitext(tmp_file_path)[0] + ".wav")
 
         # Normalize the audio file
-        if not normalize_lufs_ffmpeg(tmp_file_path):
-            logger.warning(f"LUFS normalization failed for {tmp_file_path}")
-        else:
-            logger.info(f"Performed LUFS normalization for {tmp_file_path}")
+
+        # Try on remote server first
+        try:
+            logger.info("Trying remote LUFS normalization...")
+            remote_normalize_lufs_ffmpeg(tmp_file_path)
+
+        # Fallback to local if remote fails
+        except Exception as e:
+            logger.warning(f"Remote LUFS normalization failed: {str(e)}")
+            logger.info("Trying local LUFS normalization...")
+            try:
+                normalize_lufs_ffmpeg(tmp_file_path)
+            except Exception as e:
+                logger.warning(f"Local LUFS normalization failed: {str(e)}")
 
         # Add track number and (if provided) custom name to the filename
         if custom_name:
@@ -1046,10 +1119,20 @@ def upload_sample(bank, sample_key):
             logger.warning("sox failed to remove silence.")
 
         # Normalize the audio file
-        if not normalize_lufs_ffmpeg(tmp_file_path):
-            logger.warning(f"LUFS normalization failed for {tmp_file_path}")
-        else:
-            logger.info(f"Performed LUFS normalization for {tmp_file_path}")
+
+        # Try on remote server first
+        try:
+            logger.info("Trying remote LUFS normalization...")
+            remote_normalize_lufs_ffmpeg(tmp_file_path)
+
+        # Fallback to local if remote fails
+        except Exception as e:
+            logger.warning(f"Remote LUFS normalization failed: {str(e)}")
+            logger.info("Trying local LUFS normalization...")
+            try:
+                normalize_lufs_ffmpeg(tmp_file_path)
+            except Exception as e:
+                logger.warning(f"Local LUFS normalization failed: {str(e)}")
 
         # Check if file size exceeds MAX_SAMPLE_SIZE
         if os.path.getsize(tmp_file_path) > MAX_SAMPLE_SIZE:
@@ -1182,10 +1265,18 @@ def upload_sample(bank, sample_key):
             logger.warning("sox failed to remove silence.")
 
         # Normalize the audio file
-        if not normalize_lufs_ffmpeg(tmp_out):
-            logger.warning(f"LUFS normalization failed for {tmp_out}")
-        else:
-            logger.info(f"Performed LUFS normalization for {tmp_out}")
+        try:
+            logger.info("Trying remote LUFS normalization...")
+            remote_normalize_lufs_ffmpeg(tmp_out)
+
+        # Fallback to local if remote fails
+        except Exception as e:
+            logger.warning(f"Remote LUFS normalization failed: {str(e)}")
+            logger.info("Trying local LUFS normalization...")
+            try:
+                normalize_lufs_ffmpeg(tmp_out)
+            except Exception as e:
+                logger.warning(f"Local LUFS normalization failed: {str(e)}")
 
         # Check if file size exceeds MAX_SAMPLE_SIZE
         if os.path.getsize(tmp_out) > MAX_SAMPLE_SIZE:
