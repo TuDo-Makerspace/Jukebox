@@ -40,6 +40,7 @@ import tempfile
 import uuid
 
 from flask import Flask, render_template, request, redirect, url_for, jsonify
+from werkzeug.utils import secure_filename
 from yt_dlp import YoutubeDL
 
 
@@ -161,7 +162,7 @@ def bpm_tag(file_path):
     """
     Run bpm-tag on the given file.
     """
-    logger.info("Analyzing BPM for {file_path}...")
+    logger.info(f"Analyzing BPM for {file_path}...")
 
     result = subprocess.run(
         ["bpm-tag", file_path],
@@ -359,6 +360,7 @@ def yt_dlp(link, out_dir, format="mp3"):
     ydl_opts = {
         "format": "bestaudio/best",
         "noplaylist": True,
+        "ffmpeg_location": "/usr/bin/ffmpeg",
         "postprocessors": [
             {
                 "key": "FFmpegExtractAudio",
@@ -756,6 +758,9 @@ def upload(track_number):
     # Get the optional name field
     custom_name = request.form.get("name", "").strip()
 
+    # Make safe
+    custom_name = secure_filename(custom_name)
+
     # Strip name to max 100 characters
     custom_name = custom_name[:MAX_TRACK_NAME_LEN]
 
@@ -1013,6 +1018,9 @@ def upload_sample(bank, sample_key):
 
     # Get the optional name field
     custom_name = request.form.get("name", "").strip()
+
+    # Make safe
+    custom_name = secure_filename(custom_name)
 
     # Strip name to max 100 characters
     custom_name = custom_name[:MAX_TRACK_NAME_LEN]
