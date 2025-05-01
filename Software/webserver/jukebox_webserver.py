@@ -942,6 +942,17 @@ def upload(track_number):
         tmp_out = os.path.join(temp_dir, out)
         logger.info(f"Download temporarily saved to {tmp_out}")
 
+        try:
+            logger.info("Trying remote LUFS normalization...")
+            remote_normalize_lufs_ffmpeg(tmp_out)
+        except Exception as e:
+            logger.warning(f"Remote LUFS normalization failed: {e}")
+            logger.info("Trying local LUFS normalization…")
+            try:
+                normalize_lufs_ffmpeg(tmp_out)
+            except Exception as e2:
+                logger.warning(f"Local LUFS normalization failed: {e2}")
+
         # Move the file to the JUKEBOX_SONGS_PATH and run bpm-tag
         try:
             # Remove old file for the same track number
