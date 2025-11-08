@@ -11901,7 +11901,7 @@
 			)
 		)
 	)
-	(gr_text "Rev 2.2.0"
+	(gr_text "Rev 2.2.1"
 		(at 90.7288 80.139801 0)
 		(layer "F.SilkS")
 		(uuid "4d9d607f-55cc-4e66-9291-8e5dd02d491d")
@@ -11938,7 +11938,7 @@
 			)
 		)
 	)
-	(gr_text "12V/12A"
+	(gr_text "12V/6A"
 		(at 82.2452 53.848 0)
 		(layer "F.SilkS")
 		(uuid "675b22fc-d9a9-4f08-a738-70351d0795c0")
