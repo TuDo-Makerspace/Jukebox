@@ -105,6 +105,12 @@
             margin: 10px 0;
         }
 
+        .main-content ol,
+        .main-content ul {
+            padding-left: 28px;
+            margin-left: 8px;
+        }
+
         li {
             margin-bottom: 8px;
         }
@@ -314,10 +320,8 @@
                 GPIO outputs to 12V control signals. The KiCAD design files are available
                 <a href="https://github.com/TuDo-Makerspace/Jukebox/tree/main/Lamps" target="_blank">here</a>.
             </p>
-            <a href="./LampDriverSchem.png" target="_blank" class="image-container"><img src="./LampDriverSchem.png"
-                    alt="Lamp Driver Schematic" /></a>
-            <a href="./LampDriverPCB3D.png" target="_blank" class="image-container"><img src="./LampDriverPCB3D.png"
-                    alt="Lamp Driver PCB 3D" /></a>
+            <a href="./LampDriverSchem.png" target="_blank" class="image-container"><img src="./LampDriverSchem.png" alt="Lamp Driver Schematic" /></a>
+            <a href="./LampPCB.jpg" target="_blank" class="image-container"><img src="./LampPCB.jpg" alt="Lamp PCB" /></a>
             <p>
                 The lamp driver receives 12V power from the lighting power supply and connects to the Raspberry Pi via
                 a 4-pin JST connector carrying <code>GND</code>, <code>Top</code>, <code>L/R</code>, and
@@ -335,26 +339,17 @@
                     The 3.3V GPIO signal is boosted to 12V using a BSS138 N-channel MOSFET.
                 </li>
                 <li>
-                    This 12V signal is then used to switch a P-channel power MOSFET that controls the lamp segment.
+                    This 12V signal is then used to switch a FDD4141 P-channel power MOSFET that controls the lamp segment.
                 </li>
             </ol>
             <br>
             <p>
-                In the current hardware revision, <strong>TSM7P06CP</strong> P-MOSFETs are used instead of the
-                <strong>FDD4141</strong> parts shown in the schematic. Unfortunately, the TSM7P06CP has a significantly
-                higher R<sub>DS(on)</sub>, which leads to heat buildup under load. Thermal testing has shown
-                temperatures
-                reaching up to 60°C with the current heatsink. While this remains within safe operating limits, we added
-                a layer of Kapton tape between the heatsink and the wooden enclosure as a precaution.
+                The FDD4141 MOSFETs were selected to drive the lamps due to their low R<sub>DS(on)</sub> value 
+                (in our case less than 12.3&nbsp;mΩ), which greatly reduces heat dissipation. In the previous
+                PCB revision, TSM7P06CP P-channel MOSFETs with a much higher R<sub>DS(on)</sub> of about 180&nbsp;mΩ
+                were used, leading to significant heating during operation and ultimately causing one of the transistors
+                to fail.
             </p>
-            <br>
-            <div class="note">
-                <p>
-                    <strong>Recommendation:</strong> For improved thermal performance, we suggest replacing the
-                    TSM7P06CP
-                    MOSFETs with FDD4141s in a future revision. This can be done either by building a new PCB or
-                    replacing the components on the current board.
-                </p>
             </div>
         </section>
 
@@ -365,7 +360,7 @@
                 The jukebox features two keypads:
             </p>
             <ul>
-                <li><strong>Primary keypad:</strong> Contains digits <code>0–9</code>, as well as an <code>R</code>
+                <li><strong>Primary keypad:</strong> Contains digits <code>0-9</code>, as well as an <code>R</code>
                     and <code>G</code> key.</li>
                 <li><strong>Secondary keypad:</strong> Includes three buttons marked with a <strong>yellow</strong>,
                     <strong>blue</strong>, and <strong>red</strong> dot.
@@ -379,7 +374,7 @@
             <br>
             <p>
                 The reverse-engineered schematic of the keypad, along with the keypad decoder that ensures Raspberry
-                Pi–compatible logic levels, is shown below:
+                Pi-compatible logic levels, is shown below:
             </p>
             <a href="./KeypadSch.png" target="_blank" class="image-container"><img src="./KeypadSch.png"
                     alt="Keypad Schematic" /></a>
@@ -468,7 +463,7 @@
             </p>
             <br>
             <p>
-                <strong>Example 1 – Yellow Key:</strong><br>
+                <strong>Example 1 - Yellow Key:</strong><br>
                 Arguably the simplest case. When the yellow key is pressed, current flows through the key, diode
                 <code>D401</code>, and resistor <code>R9</code>.
                 This causes a voltage drop across <code>R9</code>, which is detected as a HIGH signal on
@@ -486,7 +481,7 @@
             </div>
             </p>
             <p>
-                <strong>Example 2 – Red Key:</strong><br>
+                <strong>Example 2 - Red Key:</strong><br>
                 Pressing the red key causes current to flow through the key, as well as diodes <code>D402</code> and
                 <code>D403</code>.
                 This results in voltage drops across both <code>R9</code> and <code>R10</code>, leading to HIGH readings
@@ -494,7 +489,7 @@
             </p>
             <br>
             <p>
-                <strong>Example 3 – Key 3 and Transistor <code>T401</code>:</strong><br>
+                <strong>Example 3 - Key 3 and Transistor <code>T401</code>:</strong><br>
                 With this example we introduce the purpose of the PNP transistors. When no key is pressed, the base of
                 PNP transistor <code>T401</code> is pulled high via resistor
                 <code>R402</code> (2.2k), keeping the transistor turned off.
@@ -506,7 +501,7 @@
             </p>
             <br>
             <p>
-                <strong>Example 4 – Dual Transistor Activation:</strong><br>
+                <strong>Example 4 - Dual Transistor Activation:</strong><br>
                 When pressing any key from the bottom row of the schematic (keys 4, 1, 7, or R), both PNP transistors
                 are activated.
                 Their bases are connected via diodes to this row, so pressing any of these keys pulls both transistor
@@ -542,7 +537,7 @@
             <p>
                 The board receives stereo audio input from the Raspberry Pi’s 3.5mm jack via its ADC input pins
                 (<code>AINL</code>, <code>AINR</code>) and outputs processed audio through four DAC channels
-                (<code>DAC0–DAC3</code>), which are connected to two separate amplifier boards.
+                (<code>DAC0-DAC3</code>), which are connected to two separate amplifier boards.
             </p>
             <br>
             <p>
